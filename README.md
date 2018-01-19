@@ -1,6 +1,7 @@
 ## GraphSage: Representation Learning on Large Graphs
 
 #### Authors: [William L. Hamilton](http://stanford.edu/~wleif) (wleif@stanford.edu), [Rex Ying](http://joy-of-thinking.weebly.com/) (rexying@stanford.edu)
+#### Now under modification of zimplex
 #### [Project Website](http://snap.stanford.edu/graphsage/)
 
 
