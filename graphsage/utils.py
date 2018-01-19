@@ -8,6 +8,9 @@ import os
 
 import networkx as nx
 from networkx.readwrite import json_graph
+
+import graphsage.z_macro as z
+
 version_info = map(int, nx.__version__.split('.'))
 major = version_info[0]
 minor = version_info[1]
@@ -19,16 +22,24 @@ N_WALKS=50
 def load_data(prefix, normalize=True, load_walks=False):
     G_data = json.load(open(prefix + "-G.json"))
     G = json_graph.node_link_graph(G_data)
+    if z.BREAK_PT:
+        import pdb; pdb.set_trace()
     if isinstance(G.nodes()[0], int):
         conversion = lambda n : int(n)
     else:
         conversion = lambda n : n
-
-    if os.path.exists(prefix + "-feats.npy"):
-        feats = np.load(prefix + "-feats.npy")
+    if z.PROFILE:
+        if os.path.exists(prefix + '-feats{}.npy'.format(z.feat_vec_size)):
+            feats = np.load(prefix + '-feats{}.npy'.format(z.feat_vec_size))
+        else:
+            print("No features present.. Only identity features will be used.")
+            feats = None
     else:
-        print("No features present.. Only identity features will be used.")
-        feats = None
+        if os.path.exists(prefix + "-feats.npy"):
+            feats = np.load(prefix + "-feats.npy")
+        else:
+            print("No features present.. Only identity features will be used.")
+            feats = None
     id_map = json.load(open(prefix + "-id_map.json"))
     id_map = {conversion(k):int(v) for k,v in id_map.items()}
     walks = []
