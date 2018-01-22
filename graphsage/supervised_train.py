@@ -126,9 +126,9 @@ def construct_placeholders(num_classes):
 
 def train(train_data, test_data=None):
 
-    G = train_data[0]
-    features = train_data[1]
-    id_map = train_data[2]
+    G = train_data[0]           # [z]: networkx.Graph
+    features = train_data[1]    # [z]: |V|xD
+    id_map = train_data[2]      # 
     class_map  = train_data[4]
     if z.BREAK_PT:
         import pdb; pdb.set_trace()
@@ -140,9 +140,11 @@ def train(train_data, test_data=None):
     if not features is None:
         # pad with dummy zero vector
         features = np.vstack([features, np.zeros((features.shape[1],))])
-
+    
+    # [z]: what is context? -- a list of random walks
     context_pairs = train_data[3] if FLAGS.random_context else None
     placeholders = construct_placeholders(num_classes)
+    # [z]: minibatch.adj is a adj list of a uniform graph sampled from the input graph
     minibatch = NodeMinibatchIterator(G, 
             id_map,
             placeholders, 
@@ -151,6 +153,8 @@ def train(train_data, test_data=None):
             batch_size=FLAGS.batch_size,
             max_degree=FLAGS.max_degree, 
             context_pairs = context_pairs)
+    # [z]: adj_info_ph is of R^{|V|xFLAGS.max_degree}
+    # [z]: minibatch.adj is R^{|V|xD}
     adj_info_ph = tf.placeholder(tf.int32, shape=minibatch.adj.shape)
     adj_info = tf.Variable(adj_info_ph, trainable=False, name="adj_info")
 
@@ -158,21 +162,23 @@ def train(train_data, test_data=None):
         # Create model
         sampler = UniformNeighborSampler(adj_info)
         if FLAGS.samples_3 != 0:
+            # [z]: SAGEInfo: [layer_name, neigh_sampler, num_samples, output_dim]
+            # [z]: NOTE: i should probably start from single layer model. i.e., FLAGS.samples_2 = 0
             layer_infos = [SAGEInfo("node", sampler, FLAGS.samples_1, FLAGS.dim_1),
-                                SAGEInfo("node", sampler, FLAGS.samples_2, FLAGS.dim_2),
-                                SAGEInfo("node", sampler, FLAGS.samples_3, FLAGS.dim_2)]
+                           SAGEInfo("node", sampler, FLAGS.samples_2, FLAGS.dim_2),
+                           SAGEInfo("node", sampler, FLAGS.samples_3, FLAGS.dim_2)]
         elif FLAGS.samples_2 != 0:
             layer_infos = [SAGEInfo("node", sampler, FLAGS.samples_1, FLAGS.dim_1),
-                                SAGEInfo("node", sampler, FLAGS.samples_2, FLAGS.dim_2)]
+                           SAGEInfo("node", sampler, FLAGS.samples_2, FLAGS.dim_2)]
         else:
             layer_infos = [SAGEInfo("node", sampler, FLAGS.samples_1, FLAGS.dim_1)]
 
         model = SupervisedGraphsage(num_classes, placeholders, 
-                                     features,
+                                     features,      # [z]: |V|xD
                                      adj_info,
                                      minibatch.deg,
                                      layer_infos, 
-                                     model_size=FLAGS.model_size,
+                                     model_size=FLAGS.model_size,   # [z]: can be small or big?
                                      sigmoid_loss = FLAGS.sigmoid,
                                      identity_dim = FLAGS.identity_dim,
                                      logging=True)
@@ -264,7 +270,9 @@ def train(train_data, test_data=None):
     avg_time = 0.0
     epoch_val_costs = []
 
+    # [z]: adj_info, is this adj for the whole graph or just the mini batch?
     train_adj_info = tf.assign(adj_info, minibatch.adj)
+    # [z]: minibatch.test_adj is also the adj of the whole graph!
     val_adj_info = tf.assign(adj_info, minibatch.test_adj)
     for epoch in range(FLAGS.epochs): 
         minibatch.shuffle() 
@@ -281,6 +289,10 @@ def train(train_data, test_data=None):
             # Training step
             if z.BREAK_PT:
                 import pdb; pdb.set_trace()
+            # [z]: actually calculate the values in SupervisedGraphsage.build()
+            # [z]: feed_dict should be fed to a tf.placeholder
+            # [z]: opt_op is applying gradients to the params, but it does not return anything.
+            # [z]: model.preds is R^{512x121}
             outs = sess.run([merged, model.opt_op, model.loss, model.preds], feed_dict=feed_dict)
             train_cost = outs[2]
 
@@ -343,6 +355,16 @@ def train(train_data, test_data=None):
 
 def main(argv=None):
     print("Loading training data..")
+    # [z]: train_data
+    # type: tuple of size 2
+    #   train_data[0]: networkx.Graph object
+    #   train_data[1]: array of R^{|V|xD}
+    #   train_data[2]: dict of size |V|, {id: id}. Vertex renaming, referred to as id2idx
+    #   train_data[3]: empty
+    #   train_data[4]: array of |V|xD', where D' is number of output classes
+    # ppi graph:
+    #   |V|: 14755
+    #   |E|: 228431
     train_data = load_data(FLAGS.train_prefix)
     print("Done loading training data..")
     train(train_data)

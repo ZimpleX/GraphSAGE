@@ -33,7 +33,10 @@ class EdgeMinibatchIterator(object):
         self.batch_num = 0
 
         self.nodes = np.random.permutation(G.nodes())
+        # [z]: self.adj is resampled to have uniform degree.
+        #   self.deg, however, is the degree before resampling.
         self.adj, self.deg = self.construct_adj()
+        # [z]: test_adj is just the graph resampled.
         self.test_adj = self.construct_test_adj()
         if context_pairs is None:
             edges = G.edges()
@@ -188,6 +191,8 @@ class NodeMinibatchIterator(object):
     batch_size -- size of the minibatches
     max_degree -- maximum size of the downsampled adjacency lists
     """
+
+    # [z]: NOTE: downsampled adj list
     def __init__(self, G, id2idx, 
             placeholders, label_map, num_classes, 
             batch_size=100, max_degree=25,
@@ -202,7 +207,9 @@ class NodeMinibatchIterator(object):
         self.batch_num = 0
         self.label_map = label_map
         self.num_classes = num_classes
-
+        # self.deg: array of size |V|
+        # self.adj: array of R^{|V|xself.max_degree}
+        #           after the self.construct_adj() method
         self.adj, self.deg = self.construct_adj()
         self.test_adj = self.construct_test_adj()
 
