@@ -298,6 +298,7 @@ class SampleAndAggregate(GeneralizedModel):
         # length: number of layers + 1
         hidden = [tf.nn.embedding_lookup(input_features, node_samples) for node_samples in samples]
         new_agg = aggregators is None
+        #import pdb; pdb.set_trace()
         if new_agg:
             aggregators = []
         for layer in range(len(num_samples)):
@@ -305,6 +306,10 @@ class SampleAndAggregate(GeneralizedModel):
                 dim_mult = 2 if concat and (layer != 0) else 1
                 # aggregator at current layer
                 if layer == len(num_samples) - 1:
+                    # [z]: aggregator class
+                    # def __init__(self, input_dim, output_dim, neigh_input_dim=None,
+                    #   dropout=0., bias=False, act=tf.nn.relu, 
+                    #   name=None, concat=False, **kwargs):
                     aggregator = self.aggregator_cls(dim_mult*dims[layer], dims[layer+1], act=lambda x : x,
                             dropout=self.placeholders['dropout'], 
                             name=name, concat=concat, model_size=model_size)
@@ -312,7 +317,7 @@ class SampleAndAggregate(GeneralizedModel):
                     aggregator = self.aggregator_cls(dim_mult*dims[layer], dims[layer+1],
                             dropout=self.placeholders['dropout'], 
                             name=name, concat=concat, model_size=model_size)
-                aggregators.append(aggregator)
+                aggregators.append(aggregator)      # [z]: mean aggregator
             else:
                 aggregator = aggregators[layer]
             # hidden representation at current layer for all support nodes that are various hops away
@@ -320,11 +325,15 @@ class SampleAndAggregate(GeneralizedModel):
             # as layer increases, the number of support nodes needed decreases
             for hop in range(len(num_samples) - layer):
                 dim_mult = 2 if concat and (layer != 0) else 1
+                # [z]: neigh_dims = [.., 10, 50]
                 neigh_dims = [batch_size * support_sizes[hop], 
                               num_samples[len(num_samples) - hop - 1], 
                               dim_mult*dims[layer]]
+                import pdb; pdb.set_trace()
+                # [z]: hidden: embedding lookup 0,1,2
+                # [z]: neigh_dims: [tf.mul_2,10,50]
                 h = aggregator((hidden[hop],
-                                tf.reshape(hidden[hop + 1], neigh_dims)))
+                                tf.reshape(hidden[hop + 1], neigh_dims)))       # [z]: here the __call__ function is initiated? With "input" of length 2
                 next_hidden.append(h)
             hidden = next_hidden
         return hidden[0], aggregators
