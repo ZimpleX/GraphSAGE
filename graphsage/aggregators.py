@@ -44,30 +44,33 @@ class MeanAggregator(Layer):
         # [z]: called from models.py/aggregate()/line 335
         # [z]: this is called in the super class Layer's __call__ function 
         #import traceback; traceback.print_stack()
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
         self_vecs, neigh_vecs = inputs
-        # [z]: neigh_vecs shape [None, 10, 50]
+        # [z]: neigh_vecs shape [batch_size, 10, 50]
         # [z]: self_vecs shape None
         neigh_vecs = tf.nn.dropout(neigh_vecs, 1-self.dropout)
         self_vecs = tf.nn.dropout(self_vecs, 1-self.dropout)
-        # [z]: neigh_means shape [None, 50]
+        # [z]: neigh_means shape [batch_size, 50]
         # [z]: This is the mean aggregator! You take 10 samples, reduce to one, and each sample have 50 features.
         neigh_means = tf.reduce_mean(neigh_vecs, axis=1)
        
         # [nodes] x [out_dim]
-        # [z]: from_neighs shape [None, 128]
+        # [z]: from_neighs shape [batch_size, 128]
         # [z]: self.vars['neigh_weights'] shape [50,128]
         from_neighs = tf.matmul(neigh_means, self.vars['neigh_weights'])
         # [z]: from_self shape [None, 128]
         # [z]: self.vars['self_weights'] shape [50,128]
         from_self = tf.matmul(self_vecs, self.vars["self_weights"])
         
+        print('weight dimension: {}'.format(self.vars["self_weights"].shape))
+
         # [z]: output shape [None, 256]
         if not self.concat:
             output = tf.add_n([from_self, from_neighs])
         else:
             output = tf.concat([from_self, from_neighs], axis=1)
-
+        #import pdb; pdb.set_trace()
+        print('output dimension: {}'.format(output.shape))
         # bias
         if self.bias:
             output += self.vars['bias']

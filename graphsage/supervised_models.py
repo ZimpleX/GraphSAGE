@@ -100,7 +100,7 @@ class SupervisedGraphsage(models.SampleAndAggregate):
         self.outputs1, self.aggregators = self.aggregate(samples1, [self.features], self.dims, num_samples,
                 support_sizes1, concat=self.concat, model_size=self.model_size)
         dim_mult = 2 if self.concat else 1
-
+        import sys; sys.exit(0)
         #####################
         # [z]: OUPTUT LAYER #
         #####################

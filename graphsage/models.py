@@ -292,6 +292,12 @@ class SampleAndAggregate(GeneralizedModel):
             The hidden representation at the final layer for all nodes in batch
         """
 
+        """
+        [z]: NOTE:
+            THE FOLLOWING NESTED LOOP IS THE CHEBYSHEV'S POLYNOMIAL OF THE FIRST KIND
+            THE INNER LOOP IS TO CALCULATE ONLY ONE LAYER, THE OUTER LOOP IS FOR LAYERS OF THE GRAPH CONV
+            SEE GCN PAPER FOR INTUITION BEHIND THE NESTED LOOP
+        """
         if batch_size is None:
             batch_size = self.batch_size
 
@@ -299,7 +305,6 @@ class SampleAndAggregate(GeneralizedModel):
         # [z]: get all the feature vectors of the sampled nodes
         hidden = [tf.nn.embedding_lookup(input_features, node_samples) for node_samples in samples]
         new_agg = aggregators is None
-        import pdb; pdb.set_trace()
         if new_agg:
             aggregators = []
         for layer in range(len(num_samples)):
@@ -324,21 +329,25 @@ class SampleAndAggregate(GeneralizedModel):
             else:
                 aggregator = aggregators[layer]
             # hidden representation at current layer for all support nodes that are various hops away
+            print('-> layer {} | hidden {}'.format(layer, [h.shape for h in hidden]))
             next_hidden = []
             # as layer increases, the number of support nodes needed decreases
             for hop in range(len(num_samples) - layer):
                 dim_mult = 2 if concat and (layer != 0) else 1
                 # [z]: neigh_dims = [.., 10, 50]
                 neigh_dims = [batch_size * support_sizes[hop], 
-                              num_samples[len(num_samples) - hop - 1], 
-                              dim_mult*dims[layer]]
-                import pdb; pdb.set_trace()
+                              num_samples[len(num_samples) - hop - 1],  # [z]: you get reverse index cuz support_sizes is [layer1,layer2,layer3] and num_samples is [layer3,layer2]
+                              dim_mult*dims[layer]]                     # [z]: dims is length of feature vectors [layer3,layer2,layer1]
+                #import pdb; pdb.set_trace()
                 # [z]: hidden: embedding lookup 0,1,2
                 # [z]: neigh_dims: [tf.mul_2,10,50]
+                print('-> layer {}, hop {} | support size {}, dims {}'.format(layer,hop,support_sizes[hop+1],dims[layer]))
                 h = aggregator((hidden[hop],
                                 tf.reshape(hidden[hop + 1], neigh_dims)))       # [z]: here the __call__ function is initiated? With "input" of length 2
+                # [z]: neigh_vecs is reshaped to [batch_size,10,50], and then [10*batch_size,25,50] -> 25 samples for each of the 10 parents
                 next_hidden.append(h)
             hidden = next_hidden
+            #import pdb; pdb.set_trace()
         return hidden[0], aggregators
 
     def _build(self):
