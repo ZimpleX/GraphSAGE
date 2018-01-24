@@ -83,15 +83,27 @@ class SupervisedGraphsage(models.SampleAndAggregate):
 
 
     def build(self):
+        #####################
+        # [z]: SAMPLING     #
+        #   for all layers  #
+        #####################
         samples1, support_sizes1 = self.sample(self.inputs1, self.layer_infos)
         # [z]: num_samples = [25,10]
         num_samples = [layer_info.num_samples for layer_info in self.layer_infos]
         #import pdb; pdb.set_trace()
-        # [z]: "aggregate" is very important!
+        # [z]: self.aggregate is in superclass
+        #####################
+        # [z]: FORWARD PROP #
+        #####################
+        # [z]: self.features is the input features for each node (a length 50 vector)
+        # [z]: self.dims is the number of input features for each conv layer
         self.outputs1, self.aggregators = self.aggregate(samples1, [self.features], self.dims, num_samples,
                 support_sizes1, concat=self.concat, model_size=self.model_size)
         dim_mult = 2 if self.concat else 1
 
+        #####################
+        # [z]: OUPTUT LAYER #
+        #####################
         self.outputs1 = tf.nn.l2_normalize(self.outputs1, 1)
 
         dim_mult = 2 if self.concat else 1
@@ -107,6 +119,9 @@ class SupervisedGraphsage(models.SampleAndAggregate):
         # [z]: self.node_preds is R^{?x121}, where 121 is the number of classes
         self.node_preds = self.node_pred(self.outputs1)
 
+        #####################
+        # [z]: BACK PROP    #
+        #####################
         self._loss()
         # [z]: start to backprop?
         grads_and_vars = self.optimizer.compute_gradients(self.loss)

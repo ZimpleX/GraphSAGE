@@ -296,9 +296,10 @@ class SampleAndAggregate(GeneralizedModel):
             batch_size = self.batch_size
 
         # length: number of layers + 1
+        # [z]: get all the feature vectors of the sampled nodes
         hidden = [tf.nn.embedding_lookup(input_features, node_samples) for node_samples in samples]
         new_agg = aggregators is None
-        #import pdb; pdb.set_trace()
+        import pdb; pdb.set_trace()
         if new_agg:
             aggregators = []
         for layer in range(len(num_samples)):
@@ -314,10 +315,12 @@ class SampleAndAggregate(GeneralizedModel):
                             dropout=self.placeholders['dropout'], 
                             name=name, concat=concat, model_size=model_size)
                 else:
+                    # [z]: dims is in this order [layer3,layer2,layer1]
                     aggregator = self.aggregator_cls(dim_mult*dims[layer], dims[layer+1],
                             dropout=self.placeholders['dropout'], 
                             name=name, concat=concat, model_size=model_size)
-                aggregators.append(aggregator)      # [z]: mean aggregator
+                # [z]: aggregators contains the aggregators for each layer
+                aggregators.append(aggregator)
             else:
                 aggregator = aggregators[layer]
             # hidden representation at current layer for all support nodes that are various hops away
