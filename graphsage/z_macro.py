@@ -51,3 +51,7 @@ feat_vec_size = 320
 # 80: 0.43023
 # 160: 0.69069
 # 320: 1.21002
+
+
+# the variables to evaluate during runtime, majorly contain tensorflow objects with shape None
+debug_vars = dict()

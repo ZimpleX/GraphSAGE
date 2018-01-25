@@ -287,13 +287,14 @@ def train(train_data, test_data=None):
 
             t = time.time()
             # Training step
-            if z.BREAK_PT:
-                import pdb; pdb.set_trace()
             # [z]: actually calculate the values in SupervisedGraphsage.build()
             # [z]: feed_dict should be fed to a tf.placeholder
             # [z]: opt_op is applying gradients to the params, but it does not return anything.
             # [z]: model.preds is R^{512x121}
             outs = sess.run([merged, model.opt_op, model.loss, model.preds], feed_dict=feed_dict)
+            for k in z.debug_vars.keys():
+            	dbg = sess.run(z.debug_vars[k], feed_dict=feed_dict)
+            	import pdb; pdb.set_trace()
             train_cost = outs[2]
 
             if iter % FLAGS.validate_iter == 0:

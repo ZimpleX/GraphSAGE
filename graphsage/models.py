@@ -9,6 +9,9 @@ import graphsage.metrics as metrics
 from .prediction import BipartiteEdgePredLayer
 from .aggregators import MeanAggregator, MaxPoolingAggregator, MeanPoolingAggregator, SeqAggregator, GCNAggregator
 
+import z_macro as z
+import minibatch
+
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
@@ -301,12 +304,15 @@ class SampleAndAggregate(GeneralizedModel):
         if batch_size is None:
             batch_size = self.batch_size
 
+        z.debug_vars['models/aggregate/batch_size'] = batch_size
         # length: number of layers + 1
         # [z]: get all the feature vectors of the sampled nodes
         hidden = [tf.nn.embedding_lookup(input_features, node_samples) for node_samples in samples]
+        z.debug_vars['models/aggregate/hidden'] = hidden
         new_agg = aggregators is None
         if new_agg:
             aggregators = []
+
         for layer in range(len(num_samples)):
             if new_agg:
                 dim_mult = 2 if concat and (layer != 0) else 1
@@ -329,6 +335,10 @@ class SampleAndAggregate(GeneralizedModel):
             else:
                 aggregator = aggregators[layer]
             # hidden representation at current layer for all support nodes that are various hops away
+            #if layer == 0:
+            #    z.debug_vars['models.py/aggregate/hidden_layer0'] = hidden
+            #elif layer == 1:
+            #    z.debug_vars['models.py/aggregate/hidden_layer1'] = hidden
             print('-> layer {} | hidden {}'.format(layer, [h.shape for h in hidden]))
             next_hidden = []
             # as layer increases, the number of support nodes needed decreases

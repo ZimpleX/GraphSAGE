@@ -4,6 +4,8 @@ import graphsage.models as models
 import graphsage.layers as layers
 from graphsage.aggregators import MeanAggregator, MaxPoolingAggregator, MeanPoolingAggregator, SeqAggregator, GCNAggregator
 
+import z_macro as z
+
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
@@ -87,7 +89,10 @@ class SupervisedGraphsage(models.SampleAndAggregate):
         # [z]: SAMPLING     #
         #   for all layers  #
         #####################
+        # [z]: samples1: [array of 512, array of 5120, array of 128000]
         samples1, support_sizes1 = self.sample(self.inputs1, self.layer_infos)
+        z.debug_vars['supervised_models/build/samples1'] = samples1
+        z.debug_vars['supervised_models/build/support_sizes1'] = support_sizes1
         # [z]: num_samples = [25,10]
         num_samples = [layer_info.num_samples for layer_info in self.layer_infos]
         #import pdb; pdb.set_trace()
@@ -100,7 +105,6 @@ class SupervisedGraphsage(models.SampleAndAggregate):
         self.outputs1, self.aggregators = self.aggregate(samples1, [self.features], self.dims, num_samples,
                 support_sizes1, concat=self.concat, model_size=self.model_size)
         dim_mult = 2 if self.concat else 1
-        import sys; sys.exit(0)
         #####################
         # [z]: OUPTUT LAYER #
         #####################
