@@ -304,10 +304,11 @@ class SampleAndAggregate(GeneralizedModel):
         if batch_size is None:
             batch_size = self.batch_size
 
-        z.debug_vars['models/aggregate/batch_size'] = batch_size
+        #z.debug_vars['models/aggregate/batch_size'] = batch_size
         # length: number of layers + 1
         # [z]: get all the feature vectors of the sampled nodes
         hidden = [tf.nn.embedding_lookup(input_features, node_samples) for node_samples in samples]
+        # [z]: shape of hidden: [R^{512x50}, R^{5120x50}, R^{128000x50}]
         z.debug_vars['models/aggregate/hidden'] = hidden
         new_agg = aggregators is None
         if new_agg:
@@ -355,7 +356,7 @@ class SampleAndAggregate(GeneralizedModel):
                 h = aggregator((hidden[hop],
                                 tf.reshape(hidden[hop + 1], neigh_dims)))       # [z]: here the __call__ function is initiated? With "input" of length 2
                 # [z]: neigh_vecs is reshaped to [batch_size,10,50], and then [10*batch_size,25,50] -> 25 samples for each of the 10 parents
-                next_hidden.append(h)
+                next_hidden.append(h)   # [z]: next_hidden: [R^{512x256}, R^{5120x256}]
             hidden = next_hidden
             #import pdb; pdb.set_trace()
         return hidden[0], aggregators

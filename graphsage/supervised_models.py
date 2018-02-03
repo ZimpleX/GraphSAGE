@@ -92,7 +92,6 @@ class SupervisedGraphsage(models.SampleAndAggregate):
         # [z]: samples1: [array of 512, array of 5120, array of 128000]
         samples1, support_sizes1 = self.sample(self.inputs1, self.layer_infos)
         z.debug_vars['supervised_models/build/samples1'] = samples1
-        z.debug_vars['supervised_models/build/support_sizes1'] = support_sizes1
         # [z]: num_samples = [25,10]
         num_samples = [layer_info.num_samples for layer_info in self.layer_infos]
         #import pdb; pdb.set_trace()
