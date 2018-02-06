@@ -273,6 +273,7 @@ class SampleAndAggregate(GeneralizedModel):
             support_size *= layer_infos[t].num_samples
             sampler = layer_infos[t].neigh_sampler
             node = sampler((samples[k], layer_infos[t].num_samples))
+            import pdb; pdb.set_trace()
             samples.append(tf.reshape(node, [support_size * batch_size,]))
             support_sizes.append(support_size)
         return samples, support_sizes

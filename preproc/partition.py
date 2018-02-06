@@ -1,6 +1,7 @@
 import numpy as np
 import networkx as nx
 import math
+from operator import itemgetter
 
 class partition(object):
     def __init__(self, G, part_size, seed=0):
@@ -26,19 +27,39 @@ class partition(object):
         Partition algorithm. To be overwritten by the subclass functions
         """
         pass
+    
+    def _sampler(self, v, num_samples=10):
+        """
+        uniform sampler for node v.
+        """
+        neighbors = self.G.neighbors(v)
+        if len(neighbors) == 0:
+            return []
+        elif len(neighbors) > num_samples:
+            return np.random.choice(neighbors, num_samples, replace=False)
+        else:
+            return np.random.choice(neighbors, num_samples, replace=True)
 
-    def evaluating(self, num_runs=1):
+    def evaluating(self, num_samples=10, num_runs=1):
         """
         OUTPUT:
             the average length of adj_list for each partition, and
             the average degree after our partitioning
         """
+        avg_adj_len_list = []
+        avg_sample_len_list = []
         for r in range(num_runs):
             l = [reduce(lambda x,y: x|y, [set(self.G.neighbors(v)) for v in pi]) 
                     for pi in self.partition]
             l_num = np.array([len(li) for li in l])
-            avg_adj_length = np.average(l_num)
-            return avg_adj_length, avg_adj_length/self.part_size
+            avg_adj_length = np.average(l_num)      # average adjacency list length for each partition
+            avg_adj_len_list.append(avg_adj_length)
+            n = [reduce(lambda x,y: x|y, [set(self._sampler(v)) for v in pi])
+                    for pi in self.partition]
+            n_num = np.array([len(ni) for ni in n])
+            avg_sample_len_list.append(n_num)
+        return np.average(avg_adj_len_list)/self.part_size, \
+                np.average(avg_sample_len_list)/self.part_size
 
 
 
@@ -96,6 +117,11 @@ class partition_divide_conquer(partition):
         for i,pidx in enumerate(parts_idx):
             end_idx_V_perm = start_idx_V_perm+pidx*self.part_size
             cur_partitions = V_perm[start_idx_V_perm:end_idx_V_perm].reshape(1,-1)
+            # sort by degree here: https://groups.google.com/forum/#!topic/networkx-discuss/Bai-YcHQdqg
+            #sorted_vertex_deg = sorted(self.G.degree_iter(cur_partitions[0]),key=itemgetter(1))#sorted(_deg_list,key=itemgetter(1))
+            #sorted_vertex = [si[0] for si in sorted_vertex_deg]
+            #cur_partitions = np.array(sorted_vertex).reshape(cur_partitions.shape)
+            ##################################################
             start_idx_V_perm = end_idx_V_perm
             while cur_partitions.shape[1] > self.part_size:
                 # _divide_step: in case of the last residue. e.g., when self.divide_step=4,
@@ -126,6 +152,8 @@ class partition_divide_conquer(partition):
             _ie = sum(parts_idx[:i+1])
             _is = _ie - parts_idx[i]
             self.partition[_is:_ie] = cur_partitions
+
+
 
 class partition_GOrder(partition):
     def __init__(self):
