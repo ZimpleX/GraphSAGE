@@ -6,6 +6,10 @@ import numpy as np
 # https://github.com/tkipf/gcn
 # which is under an identical MIT license as GraphSAGE
 
+"""
+Initialization of weight matrices.
+"""
+
 def uniform(shape, scale=0.05, name=None):
     """Uniform init."""
     initial = tf.random_uniform(shape, minval=-scale, maxval=scale, dtype=tf.float32)

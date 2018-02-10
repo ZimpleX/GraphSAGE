@@ -3,6 +3,8 @@ from __future__ import print_function
 import numpy as np
 import random
 import json
+import re
+import time
 
 import networkx as nx
 from networkx.readwrite import json_graph
@@ -25,39 +27,54 @@ def _resample_G(G, max_degree):
     G = nx.DiGraph()    # DiGraph cuz the resampling process does not maintain the undirected property
     for nodeid in nodes:
         G.add_node(nodeid)
+    for nodeid in nodes:
         edges = [(nodeid,i) for i in adj_list[nodeid]]
         G.add_edges_from(edges)
     return G
 
  
+def _read_from_txt(data_file):
+    G = nx.DiGraph()
+    with open(data_file, 'r') as inline:
+        for line in inline:
+            if line[0] == '#':
+                continue
+            s,t = [v.strip('\n').strip('\t') for v in re.split(' |\t',line)]
+            G.add_edge(s,t)
+    return G
 
-def load_data_simple(prefix, max_degree):
-    G_data = json.load(open(prefix + "-G.json"))
-    G = json_graph.node_link_graph(G_data)
-    mapping = {v:i for i,v in enumerate(G.nodes())}
-    G = nx.relabel_nodes(G, mapping)
-    ## Remove all nodes that do not have val/test annotations
-    ## (necessary because of networkx weirdness with the Reddit data)
-    broken_count = 0
-    for node in G.nodes():
-        if not 'val' in G.node[node] or not 'test' in G.node[node]:
-            G.remove_node(node)
-            broken_count += 1
-    print("Removed {:d} nodes that lacked proper annotations due to networkx versioning issues".format(broken_count))
-
-    ## Make sure the graph has edge train_removed annotations
-    ## (some datasets might already have this..)
-    print("Loaded data.. now preprocessing..")
-    for edge in G.edges():
-        if (G.node[edge[0]]['val'] or G.node[edge[1]]['val'] or
-            G.node[edge[0]]['test'] or G.node[edge[1]]['test']):
-            G[edge[0]][edge[1]]['train_removed'] = True
-        else:
-            G[edge[0]][edge[1]]['train_removed'] = False
-    print('now resampling to max degree of {}'.format(max_degree))
-    G = _resample_G(G, max_degree)
+def load_data_simple(data_file, max_degree):
+    _relabel = True
+    ts = time.time()
+    if data_file.split('.')[-1] == 'json':
+        G_data = json.load(open(data_file))
+        G = json_graph.node_link_graph(G_data)
+    elif data_file.split('.')[-1] == 'txt':
+        G = _read_from_txt(data_file)
+    elif data_file.split('.')[-1] == 'edgelist':    # written by nx.write_edgelist()
+        _relabel = False
+        G = nx.read_edgelist(data_file, nodetype=int)
+    else:
+        raise Exception('unsupported input format')
+    te = time.time()
+    print('done reading from input file in {:6.2f}s'.format(te-ts))
+    import pdb; pdb.set_trace()
+    if _relabel:
+        ts = time.time()
+        mapping = {v:i for i,v in enumerate(G.nodes())}
+        G = nx.relabel_nodes(G, mapping)
+        te = time.time()
+        print('done relabeling nodes in {:6.2f}s'.format(te-ts))
+    
+    if max_degree > 0:
+        ts = time.time()
+        G = _resample_G(G, max_degree)
+        te = time.time()
+        print('done resampling to max degree of {} in {:6.2f}s'.format(max_degree,te-ts))
 
     return G
 
 
-           
+def rewrite_edgelist(data_file):
+    G = load_data_simple(data_file, -1)
+    nx.write_edgelist(G, '{}.edgelist'.format(data_file))

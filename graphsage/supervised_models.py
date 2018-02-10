@@ -90,7 +90,8 @@ class SupervisedGraphsage(models.SampleAndAggregate):
         #   for all layers  #
         #####################
         # [z]: samples1: [array of 512, array of 5120, array of 128000]
-        samples1, support_sizes1 = self.sample(self.inputs1, self.layer_infos)
+        # [Z]: should get the adj matrix connecting the two layers
+        samples1, support_sizes1 = self.sample(self.inputs1, self.layer_infos)      # [z]: check neigh_sampler.py
         z.debug_vars['supervised_models/build/samples1'] = samples1
         # [z]: num_samples = [25,10]
         num_samples = [layer_info.num_samples for layer_info in self.layer_infos]
@@ -137,6 +138,7 @@ class SupervisedGraphsage(models.SampleAndAggregate):
 
     def _loss(self):
         # Weight decay loss
+        # [z]: see this: https://stats.stackexchange.com/questions/29130/difference-between-neural-net-weight-decay-and-learning-rate
         for aggregator in self.aggregators:
             for var in aggregator.vars.values():
                 self.loss += FLAGS.weight_decay * tf.nn.l2_loss(var)

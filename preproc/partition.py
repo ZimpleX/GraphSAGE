@@ -2,6 +2,7 @@ import numpy as np
 import networkx as nx
 import math
 from operator import itemgetter
+from functools import reduce
 
 class partition(object):
     def __init__(self, G, part_size, seed=0):
@@ -92,6 +93,8 @@ class partition_divide_conquer(partition):
         # you divide each partition into k subpartitions in each recursion.
         self.divide_step = k
         self.status_hash = np.zeros((self.G.number_of_nodes(),self.divide_step))
+        self.penalty_neighbor_list = True
+        self.sort_deg = False
 
     def _to_kary_representation(self, ip):
         """
@@ -109,6 +112,10 @@ class partition_divide_conquer(partition):
             parts.append(int(residue))
         return np.array(parts)
 
+    def diagnose(self):
+        # print the degree histogram for each partition.
+        pass
+
     def partitioning(self):
         V = np.array(self.G.nodes())
         V_perm = np.random.permutation(V)
@@ -118,15 +125,16 @@ class partition_divide_conquer(partition):
             end_idx_V_perm = start_idx_V_perm+pidx*self.part_size
             cur_partitions = V_perm[start_idx_V_perm:end_idx_V_perm].reshape(1,-1)
             # sort by degree here: https://groups.google.com/forum/#!topic/networkx-discuss/Bai-YcHQdqg
-            #sorted_vertex_deg = sorted(self.G.degree_iter(cur_partitions[0]),key=itemgetter(1))#sorted(_deg_list,key=itemgetter(1))
-            #sorted_vertex = [si[0] for si in sorted_vertex_deg]
-            #cur_partitions = np.array(sorted_vertex).reshape(cur_partitions.shape)
+            if self.sort_deg:
+                sorted_vertex_deg = sorted(self.G.degree_iter(cur_partitions[0]),key=itemgetter(1))
+                sorted_vertex = [si[0] for si in sorted_vertex_deg]
+                cur_partitions = np.array(sorted_vertex).reshape(cur_partitions.shape)
             ##################################################
             start_idx_V_perm = end_idx_V_perm
             while cur_partitions.shape[1] > self.part_size:
                 # _divide_step: in case of the last residue. e.g., when self.divide_step=4,
                 # then if there are 3*part_size elements remaining, we need to reset _divide_step to 3
-                _divide_step = (i==len(parts_idx)-1) and parts_idx[i] or self.divide_step
+                _divide_step = (i==len(parts_idx)-1 and parts_idx[-1]<self.divide_step) and parts_idx[i] or self.divide_step
                 next_partitions = np.zeros((cur_partitions.shape[0]*_divide_step,cur_partitions.shape[1]/_divide_step))
                 next_partition_size = cur_partitions.shape[1]/_divide_step
                 self.status_hash[...] = 0.
@@ -135,16 +143,26 @@ class partition_divide_conquer(partition):
                     _temp_part = [[] for j in range(_divide_step)]
                     _temp_part_counter = np.array([0]*_divide_step)
                     for ii,vi in enumerate(parti):
-                        orig_status_table = self.status_hash[self.G.neighbors(vi)][:,:_divide_step]
-                        orig_non_zeros = np.not_equal(0,orig_status_table).sum(axis=0)
-                        after_non_zeros = np.not_equal(0,orig_status_table+1).sum(axis=0)
                         avg_fill = ii/_divide_step
-                        penalty = (after_non_zeros-orig_non_zeros) \
-                                + (_temp_part_counter-avg_fill)/2. \
-                                + (next_partition_size+1e-10-_temp_part_counter)**-1
-                        dest_partition = np.argmin(penalty)
-                        for nbor_i in self.G.neighbors(vi):
-                            self.status_hash[nbor_i][dest_partition] += 1
+                        orig_status_table = self.status_hash[self.G.neighbors(vi)][:,:_divide_step]
+                        if self.penalty_neighbor_list:
+                            orig_non_zeros = np.not_equal(0,orig_status_table).sum(axis=0)
+                            after_non_zeros = np.not_equal(0,orig_status_table+1).sum(axis=0)
+                            penalty = (after_non_zeros-orig_non_zeros) \
+                                    + (_temp_part_counter-avg_fill)/100. \
+                                    + (next_partition_size+1e-10-_temp_part_counter)**-1
+                            dest_partition = np.argmin(penalty)
+                            for nbor_i in self.G.neighbors(vi):
+                                self.status_hash[nbor_i][dest_partition] += 1
+                        else:
+                            orig_prob = orig_status_table.sum(axis=0)
+                            # load balance coef: 1e2 is the appropriate range
+                            reward = orig_prob \
+                                    - (_temp_part_counter-avg_fill)/1e2 \
+                                    - ((next_partition_size+1e-10-_temp_part_counter)**-1)*100
+                            dest_partition = np.argmax(reward)
+                            for nbor_i in self.G.neighbors(vi):
+                                self.status_hash[nbor_i][dest_partition] += 1./self.G.degree(vi)
                         _temp_part_counter[dest_partition] += 1
                         _temp_part[dest_partition].append(vi)
                     next_partitions[k*_divide_step:(k+1)*_divide_step] = _temp_part
