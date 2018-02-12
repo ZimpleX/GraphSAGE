@@ -35,7 +35,7 @@ flags.DEFINE_string("model_size", "small", "Can be big or small; model specific 
 flags.DEFINE_string('train_prefix', '', 'prefix identifying training data. must be specified.')
 
 # left to default values in main experiments 
-flags.DEFINE_integer('epochs', 10, 'number of epochs to train.')
+flags.DEFINE_integer('epochs', 100, 'number of epochs to train.')
 flags.DEFINE_float('dropout', 0.0, 'dropout rate (1 - keep probability).')
 flags.DEFINE_float('weight_decay', 0.0, 'weight for l2 loss on embedding matrix.')
 flags.DEFINE_integer('max_degree', 128, 'maximum node degree.')
@@ -130,8 +130,7 @@ def train(train_data, test_data=None):
     features = train_data[1]    # [z]: |V|xD
     id_map = train_data[2]      # 
     class_map  = train_data[4]
-    if z.BREAK_PT:
-        import pdb; pdb.set_trace()
+
     if isinstance(list(class_map.values())[0], list):
         num_classes = len(list(class_map.values())[0])
     else:
@@ -292,10 +291,10 @@ def train(train_data, test_data=None):
             # [z]: opt_op is applying gradients to the params, but it does not return anything.
             # [z]: model.preds is R^{512x121}
             outs = sess.run([merged, model.opt_op, model.loss, model.preds], feed_dict=feed_dict)
-            for k in z.debug_vars.keys():
-                print('-------------- {} --------------'.format(k))
-                dbg = sess.run(z.debug_vars[k], feed_dict=feed_dict)
-                import pdb; pdb.set_trace()
+            #for k in z.debug_vars.keys():
+            #    print('-------------- {} --------------'.format(k))
+            #    dbg = sess.run(z.debug_vars[k], feed_dict=feed_dict)
+            #    import pdb; pdb.set_trace()
             train_cost = outs[2]
 
             if iter % FLAGS.validate_iter == 0:
@@ -324,10 +323,6 @@ def train(train_data, test_data=None):
                       "val_f1_mic=", "{:.5f}".format(val_f1_mic), 
                       "val_f1_mac=", "{:.5f}".format(val_f1_mac), 
                       "time=", "{:.5f}".format(avg_time))
- 
-            if z.PROFILE:
-                if total_steps == 50:
-                    import sys; sys.exit(0)
             iter += 1
             total_steps += 1
 
@@ -335,7 +330,7 @@ def train(train_data, test_data=None):
                 break
 
         if total_steps > FLAGS.max_total_steps:
-                break
+            break
     
     print("Optimization Finished!")
     sess.run(val_adj_info.op)
