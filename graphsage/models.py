@@ -9,8 +9,8 @@ import graphsage.metrics as metrics
 from .prediction import BipartiteEdgePredLayer
 from .aggregators import MeanAggregator, MaxPoolingAggregator, MeanPoolingAggregator, SeqAggregator, GCNAggregator
 
-import z_macro as z
-import minibatch
+import graphsage.z_macro as z
+import graphsage.minibatch
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS

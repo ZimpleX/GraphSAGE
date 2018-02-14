@@ -11,7 +11,7 @@ from networkx.readwrite import json_graph
 
 import graphsage.z_macro as z
 
-version_info = map(int, nx.__version__.split('.'))
+version_info = list(map(int, nx.__version__.split('.')))
 major = version_info[0]
 minor = version_info[1]
 assert (major <= 1) and (minor <= 11), "networkx major version > 1.11"

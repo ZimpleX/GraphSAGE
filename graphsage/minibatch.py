@@ -5,6 +5,10 @@ import numpy as np
 
 np.random.seed(123)
 
+
+####################
+# FOR UNSUPERVISED #
+####################
 class EdgeMinibatchIterator(object):
     
     """ This minibatch iterator iterates over batches of sampled edges or
@@ -178,6 +182,10 @@ class EdgeMinibatchIterator(object):
         self.nodes = np.random.permutation(self.nodes)
         self.batch_num = 0
 
+
+############################
+# FOR SUPERVISED MINIBATCH #
+############################
 class NodeMinibatchIterator(object):
     
     """ 
@@ -210,7 +218,7 @@ class NodeMinibatchIterator(object):
         # self.deg: array of size |V|
         # self.adj: array of R^{|V|xself.max_degree}
         #           after the self.construct_adj() method
-        self.adj, self.deg = self.construct_adj()
+        self.adj, self.deg = self.construct_adj()   # resample graph to uniform deg.
         self.test_adj = self.construct_test_adj()
 
         self.val_nodes = [n for n in self.G.nodes() if self.G.node[n]['val']]
@@ -232,6 +240,10 @@ class NodeMinibatchIterator(object):
         return label_vec
 
     def construct_adj(self):
+        """
+        resample graph to be of uniform degree --> 
+        this enables you to represent adj matrix as a 2D array
+        """
         adj = len(self.id2idx)*np.ones((len(self.id2idx)+1, self.max_degree))
         deg = np.zeros((len(self.id2idx),))
 
@@ -281,6 +293,9 @@ class NodeMinibatchIterator(object):
         return feed_dict, labels
 
     def node_val_feed_dict(self, size=None, test=False):
+        """
+        Caller: supervised_train/evaluate()
+        """
         if test:
             val_nodes = self.test_nodes
         else:
@@ -292,6 +307,10 @@ class NodeMinibatchIterator(object):
         return ret_val[0], ret_val[1]
 
     def incremental_node_val_feed_dict(self, size, iter_num, test=False):
+        """
+        Caller: supervised_train/evaluate()
+            - for non sigmoid activation
+        """
         if test:
             val_nodes = self.test_nodes
         else:
@@ -307,6 +326,9 @@ class NodeMinibatchIterator(object):
         return len(self.train_nodes) // self.batch_size + 1
 
     def next_minibatch_feed_dict(self):
+        """
+        Caller: supervised_train/train()
+        """
         start_idx = self.batch_num * self.batch_size
         self.batch_num += 1
         end_idx = min(start_idx + self.batch_size, len(self.train_nodes))

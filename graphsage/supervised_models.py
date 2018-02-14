@@ -4,7 +4,7 @@ import graphsage.models as models
 import graphsage.layers as layers
 from graphsage.aggregators import MeanAggregator, MaxPoolingAggregator, MeanPoolingAggregator, SeqAggregator, GCNAggregator
 
-import z_macro as z
+import graphsage.z_macro as z
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS
@@ -91,11 +91,13 @@ class SupervisedGraphsage(models.SampleAndAggregate):
         #####################
         # [z]: samples1: [array of 512, array of 5120, array of 128000]
         # [Z]: should get the adj matrix connecting the two layers
+        """
+        Build the sample graph with adj info in self.sample()
+        """
         samples1, support_sizes1 = self.sample(self.inputs1, self.layer_infos)      # [z]: check neigh_sampler.py
         z.debug_vars['supervised_models/build/samples1'] = samples1
         # [z]: num_samples = [25,10]
         num_samples = [layer_info.num_samples for layer_info in self.layer_infos]
-        #import pdb; pdb.set_trace()
         # [z]: self.aggregate is in superclass
         #####################
         # [z]: FORWARD PROP #

@@ -43,8 +43,6 @@ class MeanAggregator(Layer):
     def _call(self, inputs):
         # [z]: called from models.py/aggregate()/line 335
         # [z]: this is called in the super class Layer's __call__ function 
-        #import traceback; traceback.print_stack()
-        #import pdb; pdb.set_trace()
         self_vecs, neigh_vecs = inputs
         # [z]: neigh_vecs shape [batch_size, 10, 50]
         # [z]: self_vecs shape None
@@ -52,6 +50,9 @@ class MeanAggregator(Layer):
         self_vecs = tf.nn.dropout(self_vecs, 1-self.dropout)
         # [z]: neigh_means shape [batch_size, 50]
         # [z]: This is the mean aggregator! You take 10 samples, reduce to one, and each sample have 50 features.
+        """
+        change reduce mean to matmul of sampling adj and support nodes.
+        """
         neigh_means = tf.reduce_mean(neigh_vecs, axis=1)
        
         # [nodes] x [out_dim]

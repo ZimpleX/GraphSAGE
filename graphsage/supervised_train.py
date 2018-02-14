@@ -70,6 +70,7 @@ def calc_f1(y_true, y_pred):
         y_true = np.argmax(y_true, axis=1)
         y_pred = np.argmax(y_pred, axis=1)
     else:
+        import pdb; pdb.set_trace()
         y_pred[y_pred > 0.5] = 1
         y_pred[y_pred <= 0.5] = 0
     return metrics.f1_score(y_true, y_pred, average="micro"), metrics.f1_score(y_true, y_pred, average="macro")
@@ -269,7 +270,7 @@ def train(train_data, test_data=None):
     avg_time = 0.0
     epoch_val_costs = []
 
-    # [z]: adj_info, is this adj for the whole graph or just the mini batch?
+    # [z]: adj_info, this adj is for the whole graph
     train_adj_info = tf.assign(adj_info, minibatch.adj)
     # [z]: minibatch.test_adj is also the adj of the whole graph!
     val_adj_info = tf.assign(adj_info, minibatch.test_adj)
