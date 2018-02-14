@@ -1,0 +1,10 @@
+aim for reuse of nodes for various bfs sampling trees.
+now you have 1) forward prop, and 2) backward prop to deal with.
+the tf apply gradient will probably do 2) for you once you build 
+the proper computation graph in 1). so:
+* sample(): 
+    * in supervised_model.py, build()
+    * build the subgraph after sampling a batch, return adj mat
+* aggregator():
+    * MeanAggregator:
+    * do the forward prop by matmul of adj mat and neighbor vecs
