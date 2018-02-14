@@ -1,3 +1,4 @@
+*2018/02/14*
 aim for reuse of nodes for various bfs sampling trees.
 now you have 1) forward prop, and 2) backward prop to deal with.
 the tf apply gradient will probably do 2) for you once you build 
