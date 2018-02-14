@@ -253,13 +253,19 @@ class SampleAndAggregate(GeneralizedModel):
         self.optimizer = tf.train.AdamOptimizer(learning_rate=FLAGS.learning_rate)
 
         self.build()
+    
 
-    def sample(self, inputs, layer_infos, batch_size=None):
+    def sample(self, inputs, layer_infos, batch_size=None, reuse=False):
         """ Sample neighbors to be the supportive fields for multi-layer convolutions.
 
         Args:
             inputs: batch inputs
             batch_size: the number of inputs (different for batch inputs and negative samples).
+        Return:
+            samples: the sampled nodes for each layer
+            support_sizes: the support size for each layer. e.g., for samples [10,25],
+                            the support size should be [1,10,250]
+            adj_mat: the adjacency matrix for the sampled subgraph induced by the minibatch.
         """
         
         if batch_size is None:
@@ -272,9 +278,15 @@ class SampleAndAggregate(GeneralizedModel):
             t = len(layer_infos) - k - 1
             support_size *= layer_infos[t].num_samples
             sampler = layer_infos[t].neigh_sampler
+            # [z]: sampler returns a tf array -- convert it to adj mat
             node = sampler((samples[k], layer_infos[t].num_samples))
-            samples.append(tf.reshape(node, [support_size * batch_size,]))
-            support_sizes.append(support_size)
+            tf.reshape(node, [])
+            import pdb; pdb.set_trace()
+            if not reuse:
+                samples.append(tf.reshape(node, [support_size * batch_size,]))
+                support_sizes.append(support_size)
+            else:
+                pass
         return samples, support_sizes
 
 

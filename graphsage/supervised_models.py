@@ -94,7 +94,7 @@ class SupervisedGraphsage(models.SampleAndAggregate):
         """
         Build the sample graph with adj info in self.sample()
         """
-        samples1, support_sizes1 = self.sample(self.inputs1, self.layer_infos)      # [z]: check neigh_sampler.py
+        samples1, support_sizes1 = self.sample(self.inputs1, self.layer_infos, reuse=False)      # [z]: check neigh_sampler.py
         z.debug_vars['supervised_models/build/samples1'] = samples1
         # [z]: num_samples = [25,10]
         num_samples = [layer_info.num_samples for layer_info in self.layer_infos]
