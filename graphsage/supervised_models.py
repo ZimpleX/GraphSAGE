@@ -93,6 +93,7 @@ class SupervisedGraphsage(models.SampleAndAggregate):
         # [Z]: should get the adj matrix connecting the two layers
         """
         Build the sample graph with adj info in self.sample()
+        directly feed the sampled support vectors to tf placeholder
         """
         samples1, support_sizes1 = self.sample(self.inputs1, self.layer_infos, reuse=False)      # [z]: check neigh_sampler.py
         z.debug_vars['supervised_models/build/samples1'] = samples1

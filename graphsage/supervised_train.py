@@ -122,6 +122,9 @@ def construct_placeholders(num_classes):
         'dropout': tf.placeholder_with_default(0., shape=(), name='dropout'),
         'batch_size' : tf.placeholder(tf.int32, name='batch_size'),
     }
+    """
+    should probably add a placeholder for adj matrix here (just consider worst case)
+    """
     return placeholders
 
 def train(train_data, test_data=None):
