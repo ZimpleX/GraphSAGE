@@ -109,3 +109,6 @@ ENV/
 
 # ignore from z
 *.pyc
+
+
+sup-example_data

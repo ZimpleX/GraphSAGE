@@ -1,5 +1,8 @@
 from __future__ import division
 from __future__ import print_function
+import sys
+sys.path.insert(0, '/Users/hudiyi/Documents/Hanqing/')
+
 
 import os
 import time
@@ -18,8 +21,6 @@ from graphsage.minibatch import NodeMinibatchIterator
 from graphsage.neigh_samplers import UniformNeighborSampler
 from graphsage.utils import load_data
 import graphsage.z_macro as z
-
-import argparse
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 
@@ -160,7 +161,7 @@ def train(train_data, test_data=None):
     # [z]: minibatch.adj is a adj list of a uniform graph sampled from the input graph
     minibatch = NodeMinibatchIterator(G, 
             id_map,
-            layer_infos,
+            None,   # layer_infos
             placeholders,
             placeholder_nr,
             class_map,
@@ -265,6 +266,8 @@ def train(train_data, test_data=None):
 
     else:
         raise Exception('Error: model name unrecognized.')
+
+    minibatch.layer_infos = layer_infos
 
     config = tf.ConfigProto(log_device_placement=FLAGS.log_device_placement)
     config.gpu_options.allow_growth = True

@@ -364,13 +364,15 @@ class NodeMinibatchIterator(object):
     def next_sample_subgraph_feed_dict(self):
         s1 = self.layer_infos[0].num_samples
         s2 = self.layer_infos[1].num_samples
+        # here you have the actual sampled nodes
+        import pdb; pdb.set_trace()
         
         # uniform neighbor sampler, then flatten and set
-        batch_hop_1 = 
-        batch_hop_2 = 
-        batch_adj_0_1 = 
-        batch_adj_1_2 = 
-        return self.batch_feed_dict_nodereuse(batch_hop_1, batch_hop_2, batch_adj_0_1, batch_adj_1_2)
+        #batch_hop_1 = 
+        #batch_hop_2 = 
+        #batch_adj_0_1 = 
+        #batch_adj_1_2 = 
+        #return self.batch_feed_dict_nodereuse(batch_hop_1, batch_hop_2, batch_adj_0_1, batch_adj_1_2)
         
 
     def incremental_embed_feed_dict(self, size, iter_num):

@@ -22,8 +22,6 @@ N_WALKS=50
 def load_data(prefix, normalize=True, load_walks=False):
     G_data = json.load(open(prefix + "-G.json"))
     G = json_graph.node_link_graph(G_data)
-    if z.BREAK_PT:
-        import pdb; pdb.set_trace()
     if isinstance(G.nodes()[0], int):
         conversion = lambda n : int(n)
     else:
