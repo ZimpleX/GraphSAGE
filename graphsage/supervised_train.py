@@ -10,6 +10,7 @@ from sklearn import metrics
 
 import zython.db_util as db
 import time
+import datetime
 
 from graphsage.supervised_models import SupervisedGraphsage
 from graphsage.models import SAGEInfo
@@ -38,7 +39,7 @@ flags.DEFINE_string("model_size", "small", "Can be big or small; model specific 
 flags.DEFINE_string('train_prefix', '', 'prefix identifying training data. must be specified.')
 
 # left to default values in main experiments 
-flags.DEFINE_integer('epochs', 100, 'number of epochs to train.')
+flags.DEFINE_integer('epochs', 10, 'number of epochs to train.')
 flags.DEFINE_float('dropout', 0.0, 'dropout rate (1 - keep probability).')
 flags.DEFINE_float('weight_decay', 0.0, 'weight for l2 loss on embedding matrix.')
 flags.DEFINE_integer('max_degree', 128, 'maximum node degree.')
@@ -132,6 +133,7 @@ def construct_placeholders(num_classes):
 
 def train(train_data, test_data=None):
     timestamp = time.time()
+    timestamp = datetime.datetime.fromtimestamp(int(timestamp)).strftime('%Y-%m-%d %H:%M:%S')
     G = train_data[0]           # [z]: networkx.Graph
     features = train_data[1]    # [z]: |V|xD
     id_map = train_data[2]      # 
@@ -280,11 +282,10 @@ def train(train_data, test_data=None):
     # [z]: minibatch.test_adj is also the adj of the whole graph!
     val_adj_info = tf.assign(adj_info, minibatch.test_adj)
 
-    iter = 0
     for epoch in range(FLAGS.epochs): 
         minibatch.shuffle() 
 
-        #iter = 0
+        iter = 0
         print('Epoch: %04d' % (epoch + 1))
         epoch_val_costs.append(0)
         while not minibatch.end():
@@ -338,7 +339,7 @@ def train(train_data, test_data=None):
                              'val_loss', 'val_f1_mic', 'val_f1_mac', 'avg_time']
                 attr_type = ['INTEGER', 'REAL', 'REAL', 'REAL',
                              'REAL', 'REAL', 'REAL', 'REAL']
-                d_tuple   = (iter, train_cost, train_f1_mic, train_f1_mac,
+                d_tuple   = (total_steps, train_cost, train_f1_mic, train_f1_mac,
                              val_cost, val_f1_mic, val_f1_mac, avg_time)
                 db.basic.populate_db(attr_name, attr_type, *d_tuple, append_time=True, usr_time=timestamp, silent=True)
             iter += 1
