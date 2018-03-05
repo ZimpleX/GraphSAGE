@@ -201,19 +201,18 @@ class NodeMinibatchIterator(object):
     """
 
     # [z]: NOTE: downsampled adj list
-    def __init__(self, G, id2idx, 
+    def __init__(self, G, id2idx, layer_infos,
             placeholders, placeholder_nr, label_map, num_classes, 
-            batch_size=100, max_degree=25, sample_sizes=[0,0],
-            **kwargs):
+            batch_size=100, max_degree=25, **kwargs):
 
         self.G = G
         self.nodes = G.nodes()
         self.id2idx = id2idx
+        self.layer_infos = layer_infos
         self.placeholders = placeholders
         self.placeholder_nr = placeholder_nr
         self.batch_size = batch_size
         self.batch_nodes = None
-        self.sample_sizes = sample_sizes
         self.max_degree = max_degree
         self.batch_num = 0
         self.label_map = label_map
@@ -363,6 +362,10 @@ class NodeMinibatchIterator(object):
         return self.batch_feed_dict()
 
     def next_sample_subgraph_feed_dict(self):
+        s1 = self.layer_infos[0].num_samples
+        s2 = self.layer_infos[1].num_samples
+        
+        # uniform neighbor sampler, then flatten and set
         batch_hop_1 = 
         batch_hop_2 = 
         batch_adj_0_1 = 

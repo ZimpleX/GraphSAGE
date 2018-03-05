@@ -160,13 +160,13 @@ def train(train_data, test_data=None):
     # [z]: minibatch.adj is a adj list of a uniform graph sampled from the input graph
     minibatch = NodeMinibatchIterator(G, 
             id_map,
+            layer_infos,
             placeholders,
             placeholder_nr,
             class_map,
             num_classes,
             batch_size=FLAGS.batch_size,
             max_degree=FLAGS.max_degree, 
-            sample_sizes=[FLAGS.samples_1, FLAGS.samples_2],
             context_pairs = context_pairs)
     # [z]: adj_info_ph is of R^{|V|xFLAGS.max_degree}
     # [z]: minibatch.adj is R^{|V|xD}
