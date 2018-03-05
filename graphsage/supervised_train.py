@@ -279,10 +279,12 @@ def train(train_data, test_data=None):
     train_adj_info = tf.assign(adj_info, minibatch.adj)
     # [z]: minibatch.test_adj is also the adj of the whole graph!
     val_adj_info = tf.assign(adj_info, minibatch.test_adj)
+
+    iter = 0
     for epoch in range(FLAGS.epochs): 
         minibatch.shuffle() 
 
-        iter = 0
+        #iter = 0
         print('Epoch: %04d' % (epoch + 1))
         epoch_val_costs.append(0)
         while not minibatch.end():
