@@ -19,6 +19,8 @@ from graphsage.neigh_samplers import UniformNeighborSampler
 from graphsage.utils import load_data
 import graphsage.z_macro as z
 
+import argparse
+
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 
 # Set random seed
@@ -26,10 +28,9 @@ seed = 123
 np.random.seed(seed)
 tf.set_random_seed(seed)
 
-# Settings
 flags = tf.app.flags
 FLAGS = flags.FLAGS
-
+# Settings
 tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
 #core params..
@@ -39,16 +40,12 @@ flags.DEFINE_string("model_size", "small", "Can be big or small; model specific 
 flags.DEFINE_string('train_prefix', '', 'prefix identifying training data. must be specified.')
 
 # left to default values in main experiments 
-flags.DEFINE_integer('epochs', 10, 'number of epochs to train.')
+flags.DEFINE_integer('epochs', 100, 'number of epochs to train.')
 flags.DEFINE_float('dropout', 0.0, 'dropout rate (1 - keep probability).')
 flags.DEFINE_float('weight_decay', 0.0, 'weight for l2 loss on embedding matrix.')
 flags.DEFINE_integer('max_degree', 128, 'maximum node degree.')
-if z.PROFILE:
-    flags.DEFINE_integer('samples_1', z.SAMPLE_SIZE[0], 'number of samples in layer 1')
-    flags.DEFINE_integer('samples_2', z.SAMPLE_SIZE[1], 'number of samples in layer 2')
-else:
-    flags.DEFINE_integer('samples_1', 25, 'number of samples in layer 1')
-    flags.DEFINE_integer('samples_2', 10, 'number of samples in layer 2')
+flags.DEFINE_integer('samples_1', 25, 'number of samples in layer 1')
+flags.DEFINE_integer('samples_2', 10, 'number of samples in layer 2')
 flags.DEFINE_integer('samples_3', 0, 'number of users samples in layer 3. (Only for mean model)')
 flags.DEFINE_integer('dim_1', 128, 'Size of output dim (final is 2x this, if using concat)')
 flags.DEFINE_integer('dim_2', 128, 'Size of output dim (final is 2x this, if using concat)')
@@ -67,7 +64,9 @@ flags.DEFINE_integer('max_total_steps', 10**10, "Maximum total number of iterati
 
 os.environ["CUDA_VISIBLE_DEVICES"]=str(FLAGS.gpu)
 
+
 GPU_MEM_FRACTION = 0.8
+
 
 def calc_f1(y_true, y_pred):
     if not FLAGS.sigmoid:
@@ -126,10 +125,16 @@ def construct_placeholders(num_classes):
         'dropout': tf.placeholder_with_default(0., shape=(), name='dropout'),
         'batch_size' : tf.placeholder(tf.int32, name='batch_size'),
     }
-    """
-    should probably add a placeholder for adj matrix here (just consider worst case)
-    """
     return placeholders
+
+def construct_placeholders_for_nodereuse():
+    placeholder_nr = {
+        'batch_hop_1': tf.placeholder(tf.int32, shape=(None), name='batch_hop_1'),
+        'batch_hop_2': tf.placeholder(tf.int32, shape=(None), name='batch_hop_2'),
+        'batch_adj_0_1': tf.placeholder(tf.int32, shape=(None,None), name='batch_adj_0_1'),
+        'batch_adj_1_2': tf.placeholder(tf.int32, shape=(None,None), name='batch_adj_1_2'),
+    }
+    return placeholder_nr
 
 def train(train_data, test_data=None):
     timestamp = time.time()
@@ -151,14 +156,17 @@ def train(train_data, test_data=None):
     # [z]: what is context? -- a list of random walks
     context_pairs = train_data[3] if FLAGS.random_context else None
     placeholders = construct_placeholders(num_classes)
+    placeholder_nr = construct_placeholders_for_nodereuse()
     # [z]: minibatch.adj is a adj list of a uniform graph sampled from the input graph
     minibatch = NodeMinibatchIterator(G, 
             id_map,
-            placeholders, 
+            placeholders,
+            placeholder_nr,
             class_map,
             num_classes,
             batch_size=FLAGS.batch_size,
             max_degree=FLAGS.max_degree, 
+            sample_sizes=[FLAGS.samples_1, FLAGS.samples_2],
             context_pairs = context_pairs)
     # [z]: adj_info_ph is of R^{|V|xFLAGS.max_degree}
     # [z]: minibatch.adj is R^{|V|xD}
@@ -291,6 +299,7 @@ def train(train_data, test_data=None):
         while not minibatch.end():
             # Construct feed dictionary
             feed_dict, labels = minibatch.next_minibatch_feed_dict()
+            feed_dict_sample_subgraph = minibatch.next_sample_subgraph_feed_dict()
             feed_dict.update({placeholders['dropout']: FLAGS.dropout})
 
             t = time.time()
@@ -299,7 +308,8 @@ def train(train_data, test_data=None):
             # [z]: feed_dict should be fed to a tf.placeholder
             # [z]: opt_op is applying gradients to the params, but it does not return anything.
             # [z]: model.preds is R^{512x121}
-            outs = sess.run([merged, model.opt_op, model.loss, model.preds], feed_dict=feed_dict)
+            outs = sess.run([merged, model.opt_op, model.loss, model.preds], 
+                                feed_dict=dict(feed_dict,**feed_dict_sample_subgraph))
             #for k in z.debug_vars.keys():
             #    print('-------------- {} --------------'.format(k))
             #    dbg = sess.run(z.debug_vars[k], feed_dict=feed_dict)
@@ -385,5 +395,8 @@ def main(argv=None):
     print("Done loading training data..")
     train(train_data)
 
+
+
 if __name__ == '__main__':
+    #import pdb; pdb.set_trace()
     tf.app.run()

@@ -202,15 +202,18 @@ class NodeMinibatchIterator(object):
 
     # [z]: NOTE: downsampled adj list
     def __init__(self, G, id2idx, 
-            placeholders, label_map, num_classes, 
-            batch_size=100, max_degree=25,
+            placeholders, placeholder_nr, label_map, num_classes, 
+            batch_size=100, max_degree=25, sample_sizes=[0,0],
             **kwargs):
 
         self.G = G
         self.nodes = G.nodes()
         self.id2idx = id2idx
         self.placeholders = placeholders
+        self.placeholder_nr = placeholder_nr
         self.batch_size = batch_size
+        self.batch_nodes = None
+        self.sample_sizes = sample_sizes
         self.max_degree = max_degree
         self.batch_num = 0
         self.label_map = label_map
@@ -280,8 +283,11 @@ class NodeMinibatchIterator(object):
     def end(self):
         return self.batch_num * self.batch_size >= len(self.train_nodes)
 
-    def batch_feed_dict(self, batch_nodes, val=False):
-        batch1id = batch_nodes
+    def batch_feed_dict(self, batch_nodes=None, val=False):
+        if batch_nodes is not None:
+            batch1id = batch_nodes
+        else:
+            batch1id = self.batch_nodes
         batch1 = [self.id2idx[n] for n in batch1id]
               
         labels = np.vstack([self._make_label_vec(node) for node in batch1id])
@@ -291,6 +297,20 @@ class NodeMinibatchIterator(object):
         feed_dict.update({self.placeholders['labels']: labels})
 
         return feed_dict, labels
+
+    def batch_feed_dict_nodereuse(self, batch_hop_1, batch_hop_2,
+                              batch_adj_0_1, batch_adj_1_2, val=False):
+        batch1_hop1_id = batch_hop_1
+        batch1_hop1 = [self.id2idx[n] for n in batch1_hop1_id]
+        batch1_hop2_id = batch_hop_2
+        batch1_hop2 = [self.id2idx[n] for n in batch1_hop2_id]
+        feed_dict_nr = dict()
+        feed_dict_nr.update({self.placeholders['batch_hop_1']: batch1_hop1})
+        feed_dict_nr.update({self.placeholders['batch_hop_2']: batch1_hop2})
+        feed_dict_nr.update({self.placeholders['batch_adj_0_1']: batch_adj_0_1})
+        feed_dict_nr.update({self.placeholders['batch_adj_1_2']: batch_adj_1_2})
+
+        return feed_dict_nr
 
     def node_val_feed_dict(self, size=None, test=False):
         """
@@ -303,7 +323,7 @@ class NodeMinibatchIterator(object):
         if not size is None:
             val_nodes = np.random.choice(val_nodes, size, replace=True)
         # add a dummy neighbor
-        ret_val = self.batch_feed_dict(val_nodes)
+        ret_val = self.batch_feed_dict(batch_nodes=val_nodes)
         return ret_val[0], ret_val[1]
 
     def incremental_node_val_feed_dict(self, size, iter_num, test=False):
@@ -319,7 +339,7 @@ class NodeMinibatchIterator(object):
             len(val_nodes))]
 
         # add a dummy neighbor
-        ret_val = self.batch_feed_dict(val_node_subset)
+        ret_val = self.batch_feed_dict(batch_nodes=val_node_subset)
         return ret_val[0], ret_val[1], (iter_num+1)*size >= len(val_nodes), val_node_subset
 
     def num_training_batches(self):
@@ -334,19 +354,27 @@ class NodeMinibatchIterator(object):
         start_idx = self.batch_num * self.batch_size
         self.batch_num += 1
         end_idx = min(start_idx + self.batch_size, len(self.train_nodes))
-        batch_nodes = self.train_nodes[start_idx : end_idx]
+        self.batch_nodes = self.train_nodes[start_idx : end_idx]
         #################################
         # sample support neighbors here #
         #################################
         # for l in layers:
         #np.random.choice(self.adj[r], sample_size[l], replace=False)
-        return self.batch_feed_dict(batch_nodes)
+        return self.batch_feed_dict()
+
+    def next_sample_subgraph_feed_dict(self):
+        batch_hop_1 = 
+        batch_hop_2 = 
+        batch_adj_0_1 = 
+        batch_adj_1_2 = 
+        return self.batch_feed_dict_nodereuse(batch_hop_1, batch_hop_2, batch_adj_0_1, batch_adj_1_2)
+        
 
     def incremental_embed_feed_dict(self, size, iter_num):
         node_list = self.nodes
         val_nodes = node_list[iter_num*size:min((iter_num+1)*size, 
             len(node_list))]
-        return self.batch_feed_dict(val_nodes), (iter_num+1)*size >= len(node_list), val_nodes
+        return self.batch_feed_dict(batch_nodes=val_nodes), (iter_num+1)*size >= len(node_list), val_nodes
 
     def shuffle(self):
         """ Re-shuffle the training set.
