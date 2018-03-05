@@ -328,11 +328,18 @@ class NodeMinibatchIterator(object):
     def next_minibatch_feed_dict(self):
         """
         Caller: supervised_train/train()
+        IMPORTANT: here return also the adj matrix of the layers,
+        as well as the support vectors for each layer
         """
         start_idx = self.batch_num * self.batch_size
         self.batch_num += 1
         end_idx = min(start_idx + self.batch_size, len(self.train_nodes))
         batch_nodes = self.train_nodes[start_idx : end_idx]
+        #################################
+        # sample support neighbors here #
+        #################################
+        # for l in layers:
+        #np.random.choice(self.adj[r], sample_size[l], replace=False)
         return self.batch_feed_dict(batch_nodes)
 
     def incremental_embed_feed_dict(self, size, iter_num):

@@ -42,6 +42,7 @@ class MeanAggregator(Layer):
 
     def _call(self, inputs):
         # [z]: called from models.py/aggregate()/line 335
+        # [z]: this is actually from sample_and_aggregate class
         # [z]: this is called in the super class Layer's __call__ function 
         self_vecs, neigh_vecs = inputs
         # [z]: neigh_vecs shape [batch_size, 10, 50]

@@ -280,8 +280,6 @@ class SampleAndAggregate(GeneralizedModel):
             sampler = layer_infos[t].neigh_sampler
             # [z]: sampler returns a tf array -- convert it to adj mat
             node = sampler((samples[k], layer_infos[t].num_samples))
-            tf.reshape(node, [])
-            import pdb; pdb.set_trace()
             if not reuse:
                 samples.append(tf.reshape(node, [support_size * batch_size,]))
                 support_sizes.append(support_size)

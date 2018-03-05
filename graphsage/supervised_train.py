@@ -8,6 +8,9 @@ import numpy as np
 import sklearn
 from sklearn import metrics
 
+import zython.db_util as db
+import time
+
 from graphsage.supervised_models import SupervisedGraphsage
 from graphsage.models import SAGEInfo
 from graphsage.minibatch import NodeMinibatchIterator
@@ -128,7 +131,7 @@ def construct_placeholders(num_classes):
     return placeholders
 
 def train(train_data, test_data=None):
-
+    timestamp = time.time()
     G = train_data[0]           # [z]: networkx.Graph
     features = train_data[1]    # [z]: |V|xD
     id_map = train_data[2]      # 
@@ -326,6 +329,16 @@ def train(train_data, test_data=None):
                       "val_f1_mic=", "{:.5f}".format(val_f1_mic), 
                       "val_f1_mac=", "{:.5f}".format(val_f1_mac), 
                       "time=", "{:.5f}".format(avg_time))
+                #####################
+                # POPULATE DATABASE #
+                #####################
+                attr_name = ['Iter', 'train_loss', 'train_f1_mic', 'train_f1_mac', 
+                             'val_loss', 'val_f1_mic', 'val_f1_mac', 'avg_time']
+                attr_type = ['INTEGER', 'REAL', 'REAL', 'REAL',
+                             'REAL', 'REAL', 'REAL', 'REAL']
+                d_tuple   = (iter, train_cost, train_f1_mic, train_f1_mac,
+                             val_cost, val_f1_mic, val_f1_mac, avg_time)
+                db.basic.populate_db(attr_name, attr_type, *d_tuple, append_time=True, usr_time=timestamp, silent=True)
             iter += 1
             total_steps += 1
 
