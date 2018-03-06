@@ -220,6 +220,8 @@ class NodeMinibatchIterator(object):
         # self.deg: array of size |V|
         # self.adj: array of R^{|V|xself.max_degree}
         #           after the self.construct_adj() method
+        # [z]: note, you should not have this adj storing id, you should have it storing idx
+        # [z]: i.e., you should not use id2idx onwards
         self.adj, self.deg = self.construct_adj()   # resample graph to uniform deg.
         self.test_adj = self.construct_test_adj()
 
@@ -365,8 +367,17 @@ class NodeMinibatchIterator(object):
         s1 = self.layer_infos[0].num_samples
         s2 = self.layer_infos[1].num_samples
         # here you have the actual sampled nodes
+        _sampler = self.layer_infos[0].neigh_sampler
+        l1_samples = _sampler.sample_at_batching([self.batch_nodes,s1], self.adj)
+        l1_samples = np.sort(np.unique(l1_samples)).astype(np.int)
+        l2_samples = _sampler.sample_at_batching([l1_samples,s2], self.adj)
+        l2_samples = np.sort(np.unique(l2_samples)).astype(np.int)
+        adj_0_1 = np.zeros((self.batch_nodes.shape[0], l1_samples.shape[0])).astype(np.bool)
+        adj_1_2 = np.zeros((l1_samples.shape[0], l2_samples.shape[0])).astype(np.bool)
         import pdb; pdb.set_trace()
-        
+        ####################
+        # you probably don't want to use the provided neighbor sampler,
+        # cuz that will incur much overhead in tf session.
         # uniform neighbor sampler, then flatten and set
         #batch_hop_1 = 
         #batch_hop_2 = 

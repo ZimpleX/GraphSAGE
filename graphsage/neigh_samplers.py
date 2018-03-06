@@ -2,6 +2,7 @@ from __future__ import division
 from __future__ import print_function
 
 from graphsage.layers import Layer
+import numpy as np
 
 import tensorflow as tf
 flags = tf.app.flags
@@ -28,3 +29,18 @@ class UniformNeighborSampler(Layer):
         #import pdb; pdb.set_trace()
         adj_lists = tf.slice(adj_lists, [0,0], [-1, num_samples])
         return adj_lists
+
+    def sample_at_batching(self, inputs, adj):
+        """ [z]
+        similar to the _call function, this function do the sampling when choosing batch,
+        i.e., this function samples on the np array (adj), instead of the tf array.
+
+        INPUT:
+            inputs      tuple(<list: of root nodes>, <int: number of samples per root>)
+            adj         np array
+        """
+        ids, num_samples = inputs
+        adj_roots = adj[ids,:]
+        np.random.shuffle(adj_roots.T)
+        adj_roots = adj_roots.T
+        return adj_roots[:,0:num_samples]
