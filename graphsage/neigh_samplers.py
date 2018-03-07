@@ -40,7 +40,7 @@ class UniformNeighborSampler(Layer):
             adj         np array
         """
         ids, num_samples = inputs
-        adj_roots = adj[ids,:]
-        np.random.shuffle(adj_roots.T)
-        adj_roots = adj_roots.T
+        adj_roots_T = adj[ids,:].T
+        np.random.shuffle(adj_roots_T)
+        adj_roots = adj_roots_T.T
         return adj_roots[:,0:num_samples]
