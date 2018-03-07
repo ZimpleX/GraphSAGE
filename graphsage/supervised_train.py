@@ -1,7 +1,7 @@
 from __future__ import division
 from __future__ import print_function
 import sys
-sys.path.insert(0, '/Users/hudiyi/Documents/Hanqing/')
+sys.path.insert(0, '/home/hanqing/Projects/')
 
 
 import os
@@ -304,6 +304,7 @@ def train(train_data, test_data=None):
             feed_dict, labels = minibatch.next_minibatch_feed_dict()
             feed_dict_sample_subgraph = minibatch.next_sample_subgraph_feed_dict()
             feed_dict.update({placeholders['dropout']: FLAGS.dropout})
+            feed_dict_sample_subgraph.update(feed_dict)
 
             t = time.time()
             # Training step
@@ -312,11 +313,11 @@ def train(train_data, test_data=None):
             # [z]: opt_op is applying gradients to the params, but it does not return anything.
             # [z]: model.preds is R^{512x121}
             outs = sess.run([merged, model.opt_op, model.loss, model.preds], 
-                                feed_dict=dict(feed_dict,**feed_dict_sample_subgraph))
-            #for k in z.debug_vars.keys():
+                                feed_dict=dict(feed_dict_sample_subgraph))
+            for k in z.debug_vars.keys():
             #    print('-------------- {} --------------'.format(k))
-            #    dbg = sess.run(z.debug_vars[k], feed_dict=feed_dict)
-            #    import pdb; pdb.set_trace()
+                dbg = sess.run(z.debug_vars[k], feed_dict=feed_dict)
+                import pdb; pdb.set_trace()
             train_cost = outs[2]
 
             if iter % FLAGS.validate_iter == 0:

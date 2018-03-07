@@ -306,10 +306,10 @@ class NodeMinibatchIterator(object):
         batch1_hop2_id = batch_hop_2
         batch1_hop2 = [self.id2idx[n] for n in batch1_hop2_id]
         feed_dict_nr = dict()
-        feed_dict_nr.update({self.placeholders['batch_hop_1']: batch1_hop1})
-        feed_dict_nr.update({self.placeholders['batch_hop_2']: batch1_hop2})
-        feed_dict_nr.update({self.placeholders['batch_adj_0_1']: batch_adj_0_1})
-        feed_dict_nr.update({self.placeholders['batch_adj_1_2']: batch_adj_1_2})
+        feed_dict_nr.update({self.placeholder_nr['batch_hop_1']: batch1_hop1})
+        feed_dict_nr.update({self.placeholder_nr['batch_hop_2']: batch1_hop2})
+        feed_dict_nr.update({self.placeholder_nr['batch_adj_0_1']: batch_adj_0_1})
+        feed_dict_nr.update({self.placeholder_nr['batch_adj_1_2']: batch_adj_1_2})
 
         return feed_dict_nr
 
@@ -370,16 +370,25 @@ class NodeMinibatchIterator(object):
         # here you have the actual sampled nodes
         _sampler = self.layer_infos[0].neigh_sampler
         l1_samples_mat = _sampler.sample_at_batching([self.batch_nodes,s1], self.adj)
+        # unique samples for the 1-hop neighbors
         l1_samples = np.sort(np.unique(l1_samples_mat)).astype(np.int)
+        # unique samples for the 2-hop neighbors
         l2_samples_mat = _sampler.sample_at_batching([l1_samples,s2], self.adj)
         l2_samples = np.sort(np.unique(l2_samples_mat)).astype(np.int)
         adj_0_1 = np.zeros((self.batch_nodes.shape[0], l1_samples.shape[0])).astype(np.bool)
         adj_1_2 = np.zeros((l1_samples.shape[0], l2_samples.shape[0])).astype(np.bool)
         l1_index = {si:i for i,si in enumerate(l1_samples)}
-        idx_map = np.vectorize(lambda x: l1_index[x])
-        adj01_idx_ax1 = idx_map(l1_samples_mat)
-        adj01_idx_ax0 = (np.arange(batch_size)*np.ones((s1,batch_size))).T
-        import pdb; pdb.set_trace()
+        l2_index = {si:i for i,si in enumerate(l2_samples)}
+        idx01_map = np.vectorize(lambda x: l1_index[x])
+        idx12_map = np.vectorize(lambda x: l2_index[x])
+
+        adj01_idx_ax1 = idx01_map(l1_samples_mat)
+        adj01_idx_ax0 = (np.arange(batch_size)*np.ones((s1,batch_size)).astype(np.int)).T
+        adj_0_1[adj01_idx_ax0.flatten().astype(np.int),adj01_idx_ax1.flatten()] = 1
+        adj12_idx_ax1 = idx12_map(l2_samples_mat)
+        adj12_idx_ax0 = (np.arange(l1_samples.shape[0])*np.ones((s2,l1_samples.shape[0])).astype(np.int)).T
+        adj_1_2[adj12_idx_ax0.flatten().astype(np.int),adj12_idx_ax1.flatten()] = 1
+        return self.batch_feed_dict_nodereuse(l1_samples, l2_samples, adj_0_1, adj_1_2)
         ####################
         # you probably don't want to use the provided neighbor sampler,
         # cuz that will incur much overhead in tf session.
