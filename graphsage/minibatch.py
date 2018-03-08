@@ -308,8 +308,10 @@ class NodeMinibatchIterator(object):
         feed_dict_nr = dict()
         feed_dict_nr.update({self.placeholder_nr['batch_hop_1']: batch1_hop1})
         feed_dict_nr.update({self.placeholder_nr['batch_hop_2']: batch1_hop2})
-        feed_dict_nr.update({self.placeholder_nr['batch_adj_0_1']: batch_adj_0_1})
-        feed_dict_nr.update({self.placeholder_nr['batch_adj_1_2']: batch_adj_1_2})
+        feed_dict_nr.update({self.placeholder_nr['num_hop_1']: len(batch1_hop1)})
+        feed_dict_nr.update({self.placeholder_nr['num_hop_2']: len(batch1_hop2)})
+        feed_dict_nr.update({self.placeholder_nr['batch_adj_0_1']: batch_adj_0_1.flatten()})
+        feed_dict_nr.update({self.placeholder_nr['batch_adj_1_2']: batch_adj_1_2.flatten()})
 
         return feed_dict_nr
 
