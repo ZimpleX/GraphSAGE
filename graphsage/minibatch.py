@@ -284,11 +284,8 @@ class NodeMinibatchIterator(object):
     def end(self):
         return self.batch_num * self.batch_size >= len(self.train_nodes)
 
-    def batch_feed_dict(self, batch_nodes=None, val=False):
-        if batch_nodes is not None:
-            batch1id = batch_nodes
-        else:
-            batch1id = self.batch_nodes
+    def batch_feed_dict(self, val=False):
+        batch1id = self.batch_nodes
         batch1 = [self.id2idx[n] for n in batch1id]
               
         labels = np.vstack([self._make_label_vec(node) for node in batch1id])
@@ -310,8 +307,8 @@ class NodeMinibatchIterator(object):
         feed_dict_nr.update({self.placeholder_nr['batch_hop_2']: batch1_hop2})
         feed_dict_nr.update({self.placeholder_nr['num_hop_1']: len(batch1_hop1)})
         feed_dict_nr.update({self.placeholder_nr['num_hop_2']: len(batch1_hop2)})
-        feed_dict_nr.update({self.placeholder_nr['batch_adj_0_1']: batch_adj_0_1.flatten()})
-        feed_dict_nr.update({self.placeholder_nr['batch_adj_1_2']: batch_adj_1_2.flatten()})
+        feed_dict_nr.update({self.placeholder_nr['batch_adj_0_1']: batch_adj_0_1})
+        feed_dict_nr.update({self.placeholder_nr['batch_adj_1_2']: batch_adj_1_2})
 
         return feed_dict_nr
 
@@ -324,16 +321,16 @@ class NodeMinibatchIterator(object):
         else:
             val_nodes = self.val_nodes
         if not size is None:
-            val_nodes = np.random.choice(val_nodes, size, replace=True)
+            self.batch_nodes = np.random.choice(val_nodes, size, replace=True)
         # add a dummy neighbor
-        ret_val = self.batch_feed_dict(batch_nodes=val_nodes)
-        return ret_val[0], ret_val[1]
+        return self.batch_feed_dict()
 
     def incremental_node_val_feed_dict(self, size, iter_num, test=False):
         """
         Caller: supervised_train/evaluate()
             - for non sigmoid activation
         """
+        raise NotImplementedError('minibatch.py/incremental_node_val_feed_dict()')
         if test:
             val_nodes = self.test_nodes
         else:
@@ -358,11 +355,6 @@ class NodeMinibatchIterator(object):
         self.batch_num += 1
         end_idx = min(start_idx + self.batch_size, len(self.train_nodes))
         self.batch_nodes = self.train_nodes[start_idx : end_idx]
-        #################################
-        # sample support neighbors here #
-        #################################
-        # for l in layers:
-        #np.random.choice(self.adj[r], sample_size[l], replace=False)
         return self.batch_feed_dict()
 
     def next_sample_subgraph_feed_dict(self):
@@ -394,19 +386,11 @@ class NodeMinibatchIterator(object):
         adj_1_2[adj12_idx_ax0.flatten().astype(np.int),adj12_idx_ax1.flatten()] = 1.
         norm = adj_1_2.sum(axis=1).reshape(-1,1)
         adj_1_2 = adj_1_2/norm
-        return self.batch_feed_dict_nodereuse(l1_samples, l2_samples, adj_0_1.astype(np.float32), adj_1_2.astype(np.float32))
-        ####################
-        # you probably don't want to use the provided neighbor sampler,
-        # cuz that will incur much overhead in tf session.
-        # uniform neighbor sampler, then flatten and set
-        #batch_hop_1 = 
-        #batch_hop_2 = 
-        #batch_adj_0_1 = 
-        #batch_adj_1_2 = 
-        #return self.batch_feed_dict_nodereuse(batch_hop_1, batch_hop_2, batch_adj_0_1, batch_adj_1_2)
-        
+        return self.batch_feed_dict_nodereuse(l1_samples, l2_samples, adj_0_1, adj_1_2)
+       
 
     def incremental_embed_feed_dict(self, size, iter_num):
+        raise NotImplementedError('minibatch.py/incremental_embed_feed_dict()')
         node_list = self.nodes
         val_nodes = node_list[iter_num*size:min((iter_num+1)*size, 
             len(node_list))]

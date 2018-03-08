@@ -116,8 +116,9 @@ class SupervisedGraphsage(models.SampleAndAggregate):
         # [z]: we should reshape adjs
         self.outputs1, self.aggregators = self.aggregate(samples1, [self.features], self.dims, num_samples,
                 None, concat=self.concat, model_size=self.model_size, 
-                adjs=[tf.reshape(self.adj01, [self.batch_size, self.num_hop1]),
-                      tf.reshape(self.adj12, [self.num_hop1, self.num_hop2])])
+                adjs=[self.adj01, self.adj12])
+        #[tf.reshape(self.adj01, [self.batch_size, self.num_hop1]),
+        #              tf.reshape(self.adj12, [self.num_hop1, self.num_hop2])])
         dim_mult = 2 if self.concat else 1
         #####################
         # [z]: OUPTUT LAYER #

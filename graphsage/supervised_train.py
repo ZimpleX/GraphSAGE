@@ -82,6 +82,7 @@ def calc_f1(y_true, y_pred):
 def evaluate(sess, model, minibatch_iter, size=None):
     t_test = time.time()
     feed_dict_val, labels = minibatch_iter.node_val_feed_dict(size)
+    # [z]: TODO
     import pdb; pdb.set_trace()
     node_outs_val = sess.run([model.preds, model.loss], 
                         feed_dict=feed_dict_val)
@@ -133,11 +134,11 @@ def construct_placeholders_for_nodereuse():
     placeholder_nr = {
         'batch_hop_1': tf.placeholder(tf.int32, shape=(None), name='batch_hop_1'),
         'batch_hop_2': tf.placeholder(tf.int32, shape=(None), name='batch_hop_2'),
+        # maybe we don't need num_hop_1 and num_hop_2 variables
         'num_hop_1': tf.placeholder(tf.int32, name='num_hop_1'),
         'num_hop_2': tf.placeholder(tf.int32, name='num_hop_2'),
-        'batch_adj_0_1': tf.placeholder(tf.float32, shape=(None), name='batch_adj_0_1'),
-        'batch_adj_1_2': tf.placeholder(tf.float32, shape=(None), name='batch_adj_1_2'),
-        'reuse_flag': tf.placeholder(tf.bool, name='reuse_flag')
+        'batch_adj_0_1': tf.placeholder(tf.float32, shape=(None,None), name='batch_adj_0_1'),
+        'batch_adj_1_2': tf.placeholder(tf.float32, shape=(None,None), name='batch_adj_1_2')
     }
     return placeholder_nr
 
