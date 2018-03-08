@@ -41,10 +41,13 @@ class MeanAggregator(Layer):
         self.output_dim = output_dim
 
     def _call(self, inputs):
+        """
+        [z]: now integrating node reuse
+        """
         # [z]: called from models.py/aggregate()/line 335
         # [z]: this is actually from sample_and_aggregate class
         # [z]: this is called in the super class Layer's __call__ function 
-        self_vecs, neigh_vecs = inputs
+        self_vecs, neigh_vecs, adj_norm = inputs
         # [z]: neigh_vecs shape [batch_size, 10, 50]
         # [z]: self_vecs shape None
         neigh_vecs = tf.nn.dropout(neigh_vecs, 1-self.dropout)
@@ -54,8 +57,8 @@ class MeanAggregator(Layer):
         """
         change reduce mean to matmul of sampling adj and support nodes.
         """
-        neigh_means = tf.reduce_mean(neigh_vecs, axis=1)
-       
+        # neigh_means = tf.reduce_mean(neigh_vecs, axis=1)
+        neigh_means = tf.matmul(adj_norm, neigh_vecs)
         # [nodes] x [out_dim]
         # [z]: from_neighs shape [batch_size, 128]
         # [z]: self.vars['neigh_weights'] shape [50,128]

@@ -365,8 +365,8 @@ class NodeMinibatchIterator(object):
 
     def next_sample_subgraph_feed_dict(self):
         batch_size = self.batch_nodes.shape[0]
-        s1 = self.layer_infos[0].num_samples
-        s2 = self.layer_infos[1].num_samples
+        s1 = self.layer_infos[1].num_samples    # note here s1 is referring to layer 2 in forward prop
+        s2 = self.layer_infos[0].num_samples    # s2 is referring to layer 1 in forward prop
         # here you have the actual sampled nodes
         _sampler = self.layer_infos[0].neigh_sampler
         l1_samples_mat = _sampler.sample_at_batching([self.batch_nodes,s1], self.adj)
@@ -375,8 +375,8 @@ class NodeMinibatchIterator(object):
         # unique samples for the 2-hop neighbors
         l2_samples_mat = _sampler.sample_at_batching([l1_samples,s2], self.adj)
         l2_samples = np.sort(np.unique(l2_samples_mat)).astype(np.int)
-        adj_0_1 = np.zeros((self.batch_nodes.shape[0], l1_samples.shape[0])).astype(np.bool)
-        adj_1_2 = np.zeros((l1_samples.shape[0], l2_samples.shape[0])).astype(np.bool)
+        adj_0_1 = np.zeros((self.batch_nodes.shape[0], l1_samples.shape[0]))
+        adj_1_2 = np.zeros((l1_samples.shape[0], l2_samples.shape[0]))
         l1_index = {si:i for i,si in enumerate(l1_samples)}
         l2_index = {si:i for i,si in enumerate(l2_samples)}
         idx01_map = np.vectorize(lambda x: l1_index[x])
@@ -384,11 +384,15 @@ class NodeMinibatchIterator(object):
 
         adj01_idx_ax1 = idx01_map(l1_samples_mat)
         adj01_idx_ax0 = (np.arange(batch_size)*np.ones((s1,batch_size)).astype(np.int)).T
-        adj_0_1[adj01_idx_ax0.flatten().astype(np.int),adj01_idx_ax1.flatten()] = 1
+        adj_0_1[adj01_idx_ax0.flatten().astype(np.int),adj01_idx_ax1.flatten()] = 1.
+        norm = adj_0_1.sum(axis=1).reshape(-1,1)
+        adj_0_1 = adj_0_1/norm
         adj12_idx_ax1 = idx12_map(l2_samples_mat)
         adj12_idx_ax0 = (np.arange(l1_samples.shape[0])*np.ones((s2,l1_samples.shape[0])).astype(np.int)).T
-        adj_1_2[adj12_idx_ax0.flatten().astype(np.int),adj12_idx_ax1.flatten()] = 1
-        return self.batch_feed_dict_nodereuse(l1_samples, l2_samples, adj_0_1, adj_1_2)
+        adj_1_2[adj12_idx_ax0.flatten().astype(np.int),adj12_idx_ax1.flatten()] = 1.
+        norm = adj_1_2.sum(axis=1).reshape(-1,1)
+        adj_1_2 = adj_1_2/norm
+        return self.batch_feed_dict_nodereuse(l1_samples, l2_samples, adj_0_1.astype(np.float32), adj_1_2.astype(np.float32))
         ####################
         # you probably don't want to use the provided neighbor sampler,
         # cuz that will incur much overhead in tf session.

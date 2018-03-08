@@ -48,6 +48,10 @@ class SupervisedGraphsage(models.SampleAndAggregate):
 
         # get info from placeholders...
         self.inputs1 = placeholders["batch"]
+        self.hop1 = placeholders['batch_hop_1']
+        self.hop2 = placeholders['batch_hop_2']
+        self.adj01 = placeholders['batch_adj_0_1']
+        self.adj12 = placeholders['batch_adj_1_2']
         self.model_size = model_size
         self.adj_info = adj
         if identity_dim > 0:
@@ -96,8 +100,8 @@ class SupervisedGraphsage(models.SampleAndAggregate):
         directly feed the sampled support vectors to tf placeholder
         """
         # [z]: you probably don't need the adj list stored as tf array, cuz you feed adj in training
-        samples1, support_sizes1 = self.sample(self.inputs1, self.layer_infos, reuse=False)      # [z]: check neigh_sampler.py
-        
+        #samples1, support_sizes1 = self.sample(self.inputs1, self.layer_infos, reuse=False)      # [z]: check neigh_sampler.py
+        samples1 = [self.inputs1, self.hop1, self.hop2]
         #z.debug_vars['supervised_models/build/samples1'] = samples1
         # [z]: num_samples = [25,10]
         num_samples = [layer_info.num_samples for layer_info in self.layer_infos]
@@ -108,7 +112,7 @@ class SupervisedGraphsage(models.SampleAndAggregate):
         # [z]: self.features is the input features for each node (a length 50 vector)
         # [z]: self.dims is the number of input features for each conv layer
         self.outputs1, self.aggregators = self.aggregate(samples1, [self.features], self.dims, num_samples,
-                support_sizes1, concat=self.concat, model_size=self.model_size)
+                None, concat=self.concat, model_size=self.model_size, adjs=[self.adj01,self.adj12])
         dim_mult = 2 if self.concat else 1
         #####################
         # [z]: OUPTUT LAYER #

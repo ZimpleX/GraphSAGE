@@ -289,7 +289,7 @@ class SampleAndAggregate(GeneralizedModel):
 
 
     def aggregate(self, samples, input_features, dims, num_samples, support_sizes, batch_size=None,
-            aggregators=None, name=None, concat=False, model_size="small"):
+            aggregators=None, name=None, concat=False, model_size="small", adjs=None):
         """ At each layer, aggregate hidden representations of neighbors to compute the hidden representations 
             at next layer.
         Args:
@@ -301,6 +301,7 @@ class SampleAndAggregate(GeneralizedModel):
             num_samples: list of number of samples for each layer.
             support_sizes: the number of nodes to gather information from for each layer.
             batch_size: the number of inputs (different for batch inputs and negative samples).
+            [z] adjs:  the adjacency matrices connecting sampled nodes in adjacent layers
         Returns:
             The hidden representation at the final layer for all nodes in batch
         """
@@ -356,19 +357,20 @@ class SampleAndAggregate(GeneralizedModel):
             for hop in range(len(num_samples) - layer):
                 dim_mult = 2 if concat and (layer != 0) else 1
                 # [z]: neigh_dims = [.., 10, 50]
-                neigh_dims = [batch_size * support_sizes[hop], 
-                              num_samples[len(num_samples) - hop - 1],  # [z]: you get reverse index cuz support_sizes is [layer1,layer2,layer3] and num_samples is [layer3,layer2]
-                              dim_mult*dims[layer]]                     # [z]: dims is length of feature vectors [layer3,layer2,layer1]
+                #neigh_dims = [batch_size * support_sizes[hop], 
+                #              num_samples[len(num_samples) - hop - 1],  # [z]: you get reverse index cuz support_sizes is [layer1,layer2,layer3] and num_samples is [layer3,layer2]
+                #              dim_mult*dims[layer]]                     # [z]: dims is length of feature vectors [layer3,layer2,layer1]
                 #import pdb; pdb.set_trace()
                 # [z]: hidden: embedding lookup 0,1,2
                 # [z]: neigh_dims: [tf.mul_2,10,50]
-                print('-> layer {}, hop {} | support size {}, dims {}'.format(layer,hop,support_sizes[hop+1],dims[layer]))
-                h = aggregator((hidden[hop],
-                                tf.reshape(hidden[hop + 1], neigh_dims)))       # [z]: here the __call__ function is initiated? With "input" of length 2
+                #print('-> layer {}, hop {} | support size {}, dims {}, neigh_dims {}'.format(layer,hop,support_sizes[hop+1],dims[layer], neigh_dims))
+                # h = aggregator((hidden[hop],
+                #                tf.reshape(hidden[hop + 1], neigh_dims),
+                #                adjs))       # [z]: here the __call__ function is initiated? With "input" of length 2
+                h = aggregator((hidden[hop], hidden[hop+1], adjs[hop]))
                 # [z]: neigh_vecs is reshaped to [batch_size,10,50], and then [10*batch_size,25,50] -> 25 samples for each of the 10 parents
                 next_hidden.append(h)   # [z]: next_hidden: [R^{512x256}, R^{5120x256}]
             hidden = next_hidden
-            #import pdb; pdb.set_trace()
         return hidden[0], aggregators
 
     def _build(self):

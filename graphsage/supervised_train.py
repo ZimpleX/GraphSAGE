@@ -45,7 +45,7 @@ flags.DEFINE_integer('epochs', 100, 'number of epochs to train.')
 flags.DEFINE_float('dropout', 0.0, 'dropout rate (1 - keep probability).')
 flags.DEFINE_float('weight_decay', 0.0, 'weight for l2 loss on embedding matrix.')
 flags.DEFINE_integer('max_degree', 128, 'maximum node degree.')
-flags.DEFINE_integer('samples_1', 25, 'number of samples in layer 1')
+flags.DEFINE_integer('samples_1', 25, 'number of samples in layer 1')   # [z]: this is the forward layer 1
 flags.DEFINE_integer('samples_2', 10, 'number of samples in layer 2')
 flags.DEFINE_integer('samples_3', 0, 'number of users samples in layer 3. (Only for mean model)')
 flags.DEFINE_integer('dim_1', 128, 'Size of output dim (final is 2x this, if using concat)')
@@ -132,8 +132,8 @@ def construct_placeholders_for_nodereuse():
     placeholder_nr = {
         'batch_hop_1': tf.placeholder(tf.int32, shape=(None), name='batch_hop_1'),
         'batch_hop_2': tf.placeholder(tf.int32, shape=(None), name='batch_hop_2'),
-        'batch_adj_0_1': tf.placeholder(tf.int32, shape=(None,None), name='batch_adj_0_1'),
-        'batch_adj_1_2': tf.placeholder(tf.int32, shape=(None,None), name='batch_adj_1_2'),
+        'batch_adj_0_1': tf.placeholder(tf.float32, shape=(None,None), name='batch_adj_0_1'),
+        'batch_adj_1_2': tf.placeholder(tf.float32, shape=(None,None), name='batch_adj_1_2'),
     }
     return placeholder_nr
 
@@ -189,7 +189,7 @@ def train(train_data, test_data=None):
         else:
             layer_infos = [SAGEInfo("node", sampler, FLAGS.samples_1, FLAGS.dim_1)]
 
-        model = SupervisedGraphsage(num_classes, placeholders, 
+        model = SupervisedGraphsage(num_classes, dict(placeholders,**placeholder_nr), 
                                      features,      # [z]: |V|xD
                                      adj_info,
                                      minibatch.deg,
@@ -313,11 +313,11 @@ def train(train_data, test_data=None):
             # [z]: opt_op is applying gradients to the params, but it does not return anything.
             # [z]: model.preds is R^{512x121}
             outs = sess.run([merged, model.opt_op, model.loss, model.preds], 
-                                feed_dict=dict(feed_dict_sample_subgraph))
-            for k in z.debug_vars.keys():
+                                feed_dict=feed_dict_sample_subgraph)
+            #for k in z.debug_vars.keys():
             #    print('-------------- {} --------------'.format(k))
-                dbg = sess.run(z.debug_vars[k], feed_dict=feed_dict)
-                import pdb; pdb.set_trace()
+            #    dbg = sess.run(z.debug_vars[k], feed_dict=feed_dict)
+            #    import pdb; pdb.set_trace()
             train_cost = outs[2]
 
             if iter % FLAGS.validate_iter == 0:
