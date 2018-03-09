@@ -50,8 +50,6 @@ class SupervisedGraphsage(models.SampleAndAggregate):
         self.inputs1 = placeholders["batch"]
         self.hop1 = placeholders['batch_hop_1']
         self.hop2 = placeholders['batch_hop_2']
-        self.num_hop1 = placeholders['num_hop_1']
-        self.num_hop2 = placeholders['num_hop_2']
         self.adj01 = placeholders['batch_adj_0_1']
         self.adj12 = placeholders['batch_adj_1_2']
         self.model_size = model_size

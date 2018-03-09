@@ -299,14 +299,13 @@ class NodeMinibatchIterator(object):
     def batch_feed_dict_nodereuse(self, batch_hop_1, batch_hop_2,
                               batch_adj_0_1, batch_adj_1_2, val=False):
         batch1_hop1_id = batch_hop_1
-        batch1_hop1 = [self.id2idx[n] for n in batch1_hop1_id]
+        # [z]: for now we ignore the id2idx issue
+        #batch1_hop1 = [self.id2idx[n] for n in batch1_hop1_id]
         batch1_hop2_id = batch_hop_2
-        batch1_hop2 = [self.id2idx[n] for n in batch1_hop2_id]
+        #batch1_hop2 = [self.id2idx[n] for n in batch1_hop2_id]
         feed_dict_nr = dict()
-        feed_dict_nr.update({self.placeholder_nr['batch_hop_1']: batch1_hop1})
-        feed_dict_nr.update({self.placeholder_nr['batch_hop_2']: batch1_hop2})
-        feed_dict_nr.update({self.placeholder_nr['num_hop_1']: len(batch1_hop1)})
-        feed_dict_nr.update({self.placeholder_nr['num_hop_2']: len(batch1_hop2)})
+        feed_dict_nr.update({self.placeholder_nr['batch_hop_1']: batch_hop_1})
+        feed_dict_nr.update({self.placeholder_nr['batch_hop_2']: batch_hop_2})
         feed_dict_nr.update({self.placeholder_nr['batch_adj_0_1']: batch_adj_0_1})
         feed_dict_nr.update({self.placeholder_nr['batch_adj_1_2']: batch_adj_1_2})
 
@@ -330,7 +329,6 @@ class NodeMinibatchIterator(object):
         Caller: supervised_train/evaluate()
             - for non sigmoid activation
         """
-        raise NotImplementedError('minibatch.py/incremental_node_val_feed_dict()')
         if test:
             val_nodes = self.test_nodes
         else:
@@ -339,7 +337,8 @@ class NodeMinibatchIterator(object):
             len(val_nodes))]
 
         # add a dummy neighbor
-        ret_val = self.batch_feed_dict(batch_nodes=val_node_subset)
+        self.batch_nodes = np.array(val_node_subset)
+        ret_val = self.batch_feed_dict()
         return ret_val[0], ret_val[1], (iter_num+1)*size >= len(val_nodes), val_node_subset
 
     def num_training_batches(self):

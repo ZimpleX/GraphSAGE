@@ -82,10 +82,11 @@ def calc_f1(y_true, y_pred):
 def evaluate(sess, model, minibatch_iter, size=None):
     t_test = time.time()
     feed_dict_val, labels = minibatch_iter.node_val_feed_dict(size)
-    # [z]: TODO
-    import pdb; pdb.set_trace()
+    feed_dict_sample_subgraph = minibatch_iter.next_sample_subgraph_feed_dict()
+    feed_dict_sample_subgraph.update(feed_dict_val)
+    #import pdb; pdb.set_trace()
     node_outs_val = sess.run([model.preds, model.loss], 
-                        feed_dict=feed_dict_val)
+                        feed_dict=feed_dict_sample_subgraph)
     mic, mac = calc_f1(labels, node_outs_val[0])
     return node_outs_val[1], mic, mac, (time.time() - t_test)
 
@@ -109,8 +110,10 @@ def incremental_evaluate(sess, model, minibatch_iter, size, test=False):
     finished = False
     while not finished:
         feed_dict_val, batch_labels, finished, _  = minibatch_iter.incremental_node_val_feed_dict(size, iter_num, test=test)
+        feed_dict_sample_subgraph = minibatch_iter.next_sample_subgraph_feed_dict()
+        feed_dict_sample_subgraph.update(feed_dict_val)
         node_outs_val = sess.run([model.preds, model.loss], 
-                         feed_dict=feed_dict_val)
+                         feed_dict=feed_dict_sample_subgraph)
         val_preds.append(node_outs_val[0])
         labels.append(batch_labels)
         val_losses.append(node_outs_val[1])
@@ -134,9 +137,6 @@ def construct_placeholders_for_nodereuse():
     placeholder_nr = {
         'batch_hop_1': tf.placeholder(tf.int32, shape=(None), name='batch_hop_1'),
         'batch_hop_2': tf.placeholder(tf.int32, shape=(None), name='batch_hop_2'),
-        # maybe we don't need num_hop_1 and num_hop_2 variables
-        'num_hop_1': tf.placeholder(tf.int32, name='num_hop_1'),
-        'num_hop_2': tf.placeholder(tf.int32, name='num_hop_2'),
         'batch_adj_0_1': tf.placeholder(tf.float32, shape=(None,None), name='batch_adj_0_1'),
         'batch_adj_1_2': tf.placeholder(tf.float32, shape=(None,None), name='batch_adj_1_2')
     }
